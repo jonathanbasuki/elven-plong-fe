@@ -18,6 +18,13 @@
 			remoteGlobalIDString = 58CD0D11308AFD5F00C0CF29;
 			remoteInfo = "Plong Watch App";
 		};
+		58CD0E08308AFD5F00C0CF29 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 58CD0CFD308AFD5E00C0CF29 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 58CD0D04308AFD5E00C0CF29;
+			remoteInfo = Plong;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -35,6 +42,7 @@
 /* Begin PBXFileReference section */
 		58CD0D05308AFD5E00C0CF29 /* Plong.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Plong.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		58CD0D12308AFD5F00C0CF29 /* Plong Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Plong Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		58CD0E01308AFD5F00C0CF29 /* PlongTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PlongTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -46,6 +54,11 @@
 		58CD0D16308AFD5F00C0CF29 /* Plong Watch App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Plong Watch App";
+			sourceTree = "<group>";
+		};
+		58CD0E02308AFD5F00C0CF29 /* PlongTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PlongTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -61,6 +74,11 @@
 			files = (
 			);
 		};
+		58CD0E04308AFD5F00C0CF29 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -69,6 +87,7 @@
 			children = (
 				58CD0D07308AFD5E00C0CF29 /* Plong */,
 				58CD0D16308AFD5F00C0CF29 /* Plong Watch App */,
+				58CD0E02308AFD5F00C0CF29 /* PlongTests */,
 				58CD0D06308AFD5E00C0CF29 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -78,6 +97,7 @@
 			children = (
 				58CD0D05308AFD5E00C0CF29 /* Plong.app */,
 				58CD0D12308AFD5F00C0CF29 /* Plong Watch App.app */,
+				58CD0E01308AFD5F00C0CF29 /* PlongTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -125,6 +145,27 @@
 			productReference = 58CD0D12308AFD5F00C0CF29 /* Plong Watch App.app */;
 			productType = "com.apple.product-type.application";
 		};
+		58CD0E06308AFD5F00C0CF29 /* PlongTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58CD0E0B308AFD5F00C0CF29 /* Build configuration list for PBXNativeTarget "PlongTests" */;
+			buildPhases = (
+				58CD0E03308AFD5F00C0CF29 /* Sources */,
+				58CD0E04308AFD5F00C0CF29 /* Frameworks */,
+				58CD0E05308AFD5F00C0CF29 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				58CD0E07308AFD5F00C0CF29 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				58CD0E02308AFD5F00C0CF29 /* PlongTests */,
+			);
+			name = PlongTests;
+			productName = PlongTests;
+			productReference = 58CD0E01308AFD5F00C0CF29 /* PlongTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -140,6 +181,10 @@
 					};
 					58CD0D11308AFD5F00C0CF29 = {
 						CreatedOnToolsVersion = 27.1;
+					};
+					58CD0E06308AFD5F00C0CF29 = {
+						CreatedOnToolsVersion = 27.1;
+						TestTargetID = 58CD0D04308AFD5E00C0CF29;
 					};
 				};
 			};
@@ -159,6 +204,7 @@
 			targets = (
 				58CD0D04308AFD5E00C0CF29 /* Plong */,
 				58CD0D11308AFD5F00C0CF29 /* Plong Watch App */,
+				58CD0E06308AFD5F00C0CF29 /* PlongTests */,
 			);
 		};
 /* End PBXProject section */
@@ -174,8 +220,13 @@
 			files = (
 			);
 		};
+		58CD0E05308AFD5F00C0CF29 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXResourcesBuildPhase section */
-
+ 
 /* Begin PBXSourcesBuildPhase section */
 		58CD0D01308AFD5E00C0CF29 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -187,6 +238,11 @@
 			files = (
 			);
 		};
+		58CD0E03308AFD5F00C0CF29 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -194,6 +250,11 @@
 			isa = PBXTargetDependency;
 			target = 58CD0D11308AFD5F00C0CF29 /* Plong Watch App */;
 			targetProxy = 58CD0D14308AFD5F00C0CF29 /* PBXContainerItemProxy */;
+		};
+		58CD0E07308AFD5F00C0CF29 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 58CD0D04308AFD5E00C0CF29 /* Plong */;
+			targetProxy = 58CD0E08308AFD5F00C0CF29 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -460,6 +521,44 @@
 			};
 			name = Release;
 		};
+		58CD0E09308AFD5F00C0CF29 /* Debug configuration for PBXNativeTarget "PlongTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.elven.PlongTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Plong.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Plong";
+			};
+			name = Debug;
+		};
+		58CD0E0A308AFD5F00C0CF29 /* Release configuration for PBXNativeTarget "PlongTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.elven.PlongTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Plong.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Plong";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -484,6 +583,14 @@
 			buildConfigurations = (
 				58CD0D24308AFD5F00C0CF29 /* Debug configuration for PBXNativeTarget "Plong" */,
 				58CD0D25308AFD5F00C0CF29 /* Release configuration for PBXNativeTarget "Plong" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		58CD0E0B308AFD5F00C0CF29 /* Build configuration list for PBXNativeTarget "PlongTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				58CD0E09308AFD5F00C0CF29 /* Debug configuration for PBXNativeTarget "PlongTests" */,
+				58CD0E0A308AFD5F00C0CF29 /* Release configuration for PBXNativeTarget "PlongTests" */,
 			);
 			defaultConfigurationName = Release;
 		};
