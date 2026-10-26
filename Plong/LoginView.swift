@@ -8,32 +8,37 @@ struct LoginView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Plong").font(.system(size: 34, weight: .bold, design: .rounded))
-            Text("Sign in to continue").foregroundStyle(.secondary)
+        Form {
+            Section {
+                Text("Plong").font(.largeTitle.bold())
+                Text("Sign in to continue").foregroundStyle(.secondary)
+            }
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
 
-            TextField("Email", text: $email)
-                .textContentType(.username)
-                .textInputAutocapitalization(.never)
-                .keyboardType(.emailAddress)
-                .padding()
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-
-            SecureField("Password", text: $password)
-                .textContentType(.password)
-                .padding()
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-
-            if let errorMessage {
-                Text(errorMessage).font(.footnote).foregroundStyle(.red)
+            Section {
+                TextField("Email", text: $email)
+                    .textContentType(.username)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                SecureField("Password", text: $password)
+                    .textContentType(.password)
             }
 
-            PrimaryButton(title: isLoading ? "Signing in..." : "Log in", action: logIn)
-                .disabled(isLoading || email.isEmpty || password.isEmpty)
+            if let errorMessage {
+                Section {
+                    Text(errorMessage).foregroundStyle(.red)
+                }
+            }
+
+            Section {
+                PrimaryButton(title: isLoading ? "Signing in..." : "Log in", action: logIn)
+                    .disabled(isLoading || email.isEmpty || password.isEmpty)
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets())
         }
-        .padding(24)
+        .scrollDisabled(true)
     }
 
     private func logIn() {

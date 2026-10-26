@@ -1,6 +1,26 @@
 import AVKit
 import SwiftUI
 
+/// GroupBox's default (.automatic) style doesn't reliably contrast against a
+/// systemGroupedBackground screen in light mode — the two can render nearly
+/// identical, which is why cards were blending into the background. This gives
+/// every GroupBox in the app a real surface using secondarySystemGroupedBackground,
+/// the semantic "card on top of a grouped background" color: it adapts
+/// automatically per appearance (light gray in light mode, dark gray in dark
+/// mode) rather than being a hardcoded color.
+struct CardGroupBoxStyle: GroupBoxStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            configuration.label
+            configuration.content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
 struct ContentView: View {
     @StateObject private var session = Session()
 
@@ -16,6 +36,7 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Plong")
+            .toolbar(session.accessToken == nil ? .hidden : .visible, for: .navigationBar)
             .task { AppDelegate.session = session }
             .toolbar {
                 if session.accessToken != nil {
@@ -32,13 +53,11 @@ struct ContentView: View {
 struct PageHeader: View {
     let eyebrow: String
     let title: String
-    let page: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(eyebrow.uppercased()).font(.caption.weight(.bold)).foregroundStyle(.secondary)
-            Text(title).font(.system(size: 30, weight: .bold, design: .rounded))
-            Text("0\(page + 1) / 03").font(.caption.monospaced()).foregroundStyle(.secondary)
+            Text(title).font(.title.bold())
         }
     }
 }
@@ -55,8 +74,7 @@ struct ManagerContainer: View {
             VStack(alignment: .leading, spacing: 20) {
                 PageHeader(
                     eyebrow: "Manager",
-                    title: ["Overview", "Looking for staff", "Task progress"][page],
-                    page: page
+                    title: ["Overview", "Looking for staff", "Task progress"][page]
                 )
                 if page == 0 {
                     ManagerOverviewPage { showingBroadcast = true }
@@ -73,6 +91,7 @@ struct ManagerContainer: View {
             .padding(.vertical, 18)
         }
         .background(Color(uiColor: .systemGroupedBackground))
+        .groupBoxStyle(CardGroupBoxStyle())
         .sheet(isPresented: $showingBroadcast) {
             BroadcastSheet(staffNeeded: $staffNeeded, errorMessage: createError) {
                 Task {
@@ -142,11 +161,14 @@ struct ManagerWaitingPage: View {
                     detail: secondsLeft > 0 ? "Broadcast closes in \(secondsLeft)s" : "Broadcast closed",
                     progress: broadcast.map { Double($0.acceptedCount) / Double(max($0.staffNeeded, 1)) } ?? 0
                 )
-                if let broadcast, broadcast.status != "open" {
-                    if broadcast.acceptedCount == 0 {
+                if let broadcast {
+                    if broadcast.acceptedCount > 0 {
+                        // At least one person is on it — let the manager move on
+                        // right away rather than waiting out the full countdown;
+                        // more staff can still accept after this.
+                        PrimaryButton(title: "Continue", action: { page = 2 })
+                    } else if broadcast.status != "open" {
                         PrimaryButton(title: "Try again", action: startBroadcast)
-                    } else {
-                        PrimaryButton(title: "View progress", action: { page = 2 })
                     }
                 }
             }
@@ -228,25 +250,31 @@ struct StaffContainer: View {
                 VStack(alignment: .leading, spacing: 20) {
                     PageHeader(
                         eyebrow: "Staff",
-                        title: status == .notDelegating ? "New task" : "Your task",
-                        page: status == .notDelegating ? 0 : 1
+                        title: status == .delegating ? "Your task" : "New Task"
                     )
-                    if status == .notDelegating {
-                        if broadcast?.status == "open" {
-                            TaskCard(
-                                secondsLeft: Self.secondsLeft(broadcast, context.date),
-                                zoneId: session.zoneId ?? "-", accept: accept
-                            )
-                        }
-                    } else {
+                    if status == .delegating {
                         StatusCard(
                             title: "Crowd control",
-                            value: status == .done ? "Done" : "In progress",
+                            value: "In progress",
                             detail: "Zone \(session.zoneId ?? "-")",
-                            progress: status == .done ? 1 : 0.45
+                            progress: 0.45
                         )
-                        PrimaryButton(title: isActing ? "Marking done..." : "Mark as done", icon: "checkmark", action: markDone)
-                            .disabled(status != .delegating || isActing)
+                        SlideToConfirmButton(
+                            title: isActing ? "Marking done..." : "Slide to mark done",
+                            isActing: isActing,
+                            action: markDone
+                        )
+                    } else if status == .notDelegating && broadcast?.status == "open" {
+                        // .done deliberately excluded here even if the broadcast is
+                        // still open for other staff — this person already finished
+                        // their part, so they land on the empty state below, not a
+                        // re-prompt to accept the same broadcast again.
+                        TaskCard(
+                            secondsLeft: Self.secondsLeft(broadcast, context.date),
+                            zoneId: session.zoneId ?? "-", accept: accept
+                        )
+                    } else {
+                        EmptyTaskState()
                     }
                 }
                 .padding(.horizontal, 20)
@@ -254,6 +282,7 @@ struct StaffContainer: View {
             }
         }
         .background(Color(uiColor: .systemGroupedBackground))
+        .groupBoxStyle(CardGroupBoxStyle())
         .task { await poll() }
     }
 
@@ -299,20 +328,27 @@ struct BroadcastSheet: View {
     @Binding var staffNeeded: Int
     let errorMessage: String?
     let send: () -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Broadcast task").font(.title2.bold())
-            Stepper("\(staffNeeded) staff needed", value: $staffNeeded, in: 1...20)
-                .padding()
-                .background(Color(uiColor: .secondarySystemGroupedBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-            if let errorMessage {
-                Text(errorMessage).font(.footnote).foregroundStyle(.red)
+        NavigationStack {
+            Form {
+                Stepper("\(staffNeeded) staff needed", value: $staffNeeded, in: 1...20)
+                if let errorMessage {
+                    Text(errorMessage).foregroundStyle(.red)
+                }
             }
-            PrimaryButton(title: "Send task", action: send)
+            .navigationTitle("Broadcast Task")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Send", action: send)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
         }
-        .padding(24)
     }
 }
 
@@ -322,23 +358,91 @@ struct TaskCard: View {
     let accept: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Label("New task", systemImage: "bell.fill")
-                    .font(.headline)
-                Spacer()
-                Text("00:\(String(format: "%02d", secondsLeft))")
-                    .font(.headline.monospacedDigit())
+        GroupBox {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Label("New task", systemImage: "bell.fill")
+                        .font(.headline)
+                    Spacer()
+                    Text("00:\(String(format: "%02d", secondsLeft))")
+                        .font(.headline.monospacedDigit())
+                }
+                Divider()
+                Text("Crowd control")
+                    .font(.title3.bold())
+                Text("Zone \(zoneId)")
+                    .foregroundStyle(.secondary)
+                PrimaryButton(title: "Accept Task", action: accept)
             }
-            Divider()
-            Text("Crowd control")
-                .font(.title3.bold())
-            Text("Zone \(zoneId)")
-                .foregroundStyle(.secondary)
-            PrimaryButton(title: "Accept task", action: accept)
         }
-        .padding(20)
-        .cardStyle()
+    }
+}
+
+/// Apple has no public API for a continuous slide-to-confirm/unlock gesture — the
+/// classic iPhone lock-screen slider was always a private control, never exposed to
+/// third-party apps, so this stays custom. Styled with native materials/colors
+/// (.thinMaterial track, Color.accentColor handle, SF Symbols chevron) rather than
+/// hardcoded colors, and modeled on the original: a round handle you drag along a
+/// full-width track, not a tap target.
+struct SlideToConfirmButton: View {
+    let title: String
+    let isActing: Bool
+    let action: () -> Void
+    @State private var dragOffset: CGFloat = 0
+    @State private var confirmed = false
+
+    private let trackHeight: CGFloat = 72
+    private let handleSize: CGFloat = 62
+
+    var body: some View {
+        GeometryReader { geo in
+            let maxOffset = max(geo.size.width - handleSize - 8, 0)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color(uiColor: .secondarySystemGroupedBackground))
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .opacity(confirmed ? 0 : 1)
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: handleSize, height: handleSize)
+                    .overlay(
+                        Image(systemName: "chevron.right")
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                    )
+                    .offset(x: 4 + dragOffset)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                guard !confirmed, !isActing else { return }
+                                dragOffset = min(max(0, value.translation.width), maxOffset)
+                            }
+                            .onEnded { value in
+                                guard !confirmed, !isActing else { return }
+                                if dragOffset >= maxOffset * 0.9 {
+                                    confirmed = true
+                                    dragOffset = maxOffset
+                                    action()
+                                } else {
+                                    withAnimation(.spring()) { dragOffset = 0 }
+                                }
+                            }
+                    )
+            }
+        }
+        .frame(height: trackHeight)
+    }
+}
+
+struct EmptyTaskState: View {
+    var body: some View {
+        ContentUnavailableView(
+            "No active task",
+            systemImage: "tray",
+            description: Text("You'll be notified when a new broadcast opens.")
+        )
     }
 }
 
@@ -348,14 +452,15 @@ struct CCTVPreview: View {
     @State private var player = AVPlayer(url: hlsURL)
 
     var body: some View {
-        LivePlayerView(player: player)
-            .frame(height: 190)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            .overlay(alignment: .topLeading) {
-                Text("CAM 01").font(.caption2.monospaced()).foregroundStyle(.white).padding(12)
-            }
-            .onAppear { player.play() }
-            .onDisappear { player.pause() }
+        GroupBox {
+            LivePlayerView(player: player)
+                .frame(height: 190)
+                .overlay(alignment: .topLeading) {
+                    Text("CAM 01").font(.caption2.monospaced()).foregroundStyle(.white).padding()
+                }
+        }
+        .onAppear { player.play() }
+        .onDisappear { player.pause() }
     }
 }
 
@@ -378,40 +483,42 @@ struct LivePlayerView: UIViewControllerRepresentable {
 struct StatCard: View {
     let label: String; let value: String; let icon: String
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: icon).foregroundStyle(.secondary)
-            Text(value).font(.title2.bold())
-            Text(label).font(.caption).foregroundStyle(.secondary)
+        GroupBox {
+            VStack(alignment: .leading, spacing: 12) {
+                Image(systemName: icon).foregroundStyle(.secondary)
+                Text(value).font(.title2.bold())
+                Text(label).font(.caption).foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16).cardStyle()
     }
 }
 
 struct StatusCard: View {
     let title: String; let value: String; let detail: String; let progress: Double
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(title).font(.headline)
-            Text(value).font(.system(size: 34, weight: .bold, design: .rounded))
-            Text(detail).font(.subheadline).foregroundStyle(.secondary)
-            ProgressView(value: progress).tint(.primary)
-        }.padding(20).cardStyle()
+        GroupBox(title) {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(value).font(.largeTitle.bold())
+                Text(detail).font(.subheadline).foregroundStyle(.secondary)
+                ProgressView(value: progress)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 
+// Thin wrappers over native Button + the built-in .borderedProminent/.bordered
+// styles — no custom tint, so the system accent color renders correctly (and
+// legibly) in both light and dark mode instead of a hardcoded monochrome tint.
 struct PrimaryButton: View {
     let title: String; var icon: String? = nil; let action: () -> Void
-    var body: some View { Button(action: action) { Label(title, systemImage: icon ?? "arrow.right").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent).tint(.primary).controlSize(.large) }
+    var body: some View { Button(action: action) { Label(title, systemImage: icon ?? "arrow.right").frame(maxWidth: .infinity) }.buttonStyle(.borderedProminent).controlSize(.large) }
 }
 
 struct SecondaryButton: View {
     let title: String; let action: () -> Void
-    var body: some View { Button(title, action: action).frame(maxWidth: .infinity).buttonStyle(.bordered).tint(.primary).controlSize(.large) }
-}
-
-extension View {
-    func cardStyle() -> some View { background(Color(uiColor: .secondarySystemGroupedBackground)).clipShape(RoundedRectangle(cornerRadius: 18)) }
+    var body: some View { Button(title, action: action).frame(maxWidth: .infinity).buttonStyle(.bordered).controlSize(.large) }
 }
 
 #Preview { ContentView() }
