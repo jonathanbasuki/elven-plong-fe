@@ -48,8 +48,7 @@ struct LoginView: View {
                     isLoading = false
                     return
                 }
-                session.accessToken = result.accessToken
-                session.user = result.user
+                session.startSession(accessToken: result.accessToken, refreshToken: result.refreshToken, user: result.user)
                 session.zoneId = zoneId
                 PushNotifications.requestPermission()
             } catch {

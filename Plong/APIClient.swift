@@ -27,6 +27,7 @@ struct LoggedInUser: Decodable, Equatable {
 
 struct LoginResponse: Decodable {
     let accessToken: String
+    let refreshToken: String
     let user: LoggedInUser
 }
 
@@ -122,6 +123,23 @@ enum API {
         )
     }
 
+    private struct RefreshBody: Encodable {
+        let refreshToken: String
+        enum CodingKeys: String, CodingKey { case refreshToken = "refresh_token" }
+    }
+    struct RefreshResponse: Decodable {
+        let accessToken: String
+        let refreshToken: String
+    }
+    /// The access token expires after 15 minutes (ACCESS_TOKEN_MINUTES); Session calls
+    /// this proactively on a timer so a long-running shift never hits a stream of 401s.
+    static func refresh(refreshToken: String) async throws -> RefreshResponse {
+        try await send(
+            "/api/v1/auth/refresh", method: "POST",
+            body: RefreshBody(refreshToken: refreshToken), token: nil
+        )
+    }
+
     /// Single-zone POC: no zone picker, so the app just discovers whichever zone the
     /// server returns first rather than hardcoding an id that can drift out of sync
     /// with zones.json (the cctv worker's own source of zone ids).
@@ -184,11 +202,44 @@ final class Session: ObservableObject {
     @Published var accessToken: String?
     @Published var user: LoggedInUser?
     @Published var zoneId: String?
+    private var refreshToken: String?
+    private var refreshTask: Task<Void, Never>?
 
     var isManager: Bool { user?.role == "ops_manager" }
 
+    func startSession(accessToken: String, refreshToken: String, user: LoggedInUser) {
+        self.accessToken = accessToken
+        self.refreshToken = refreshToken
+        self.user = user
+        scheduleAutoRefresh()
+    }
+
+    // The access token expires after 15 minutes server-side; refresh at a comfortable
+    // margin before that so a manager/staff member mid-shift never sees a stream of
+    // silent 401s instead of live data.
+    private func scheduleAutoRefresh() {
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(10 * 60))
+                guard let self, let refreshToken = self.refreshToken else { return }
+                do {
+                    let result = try await API.refresh(refreshToken: refreshToken)
+                    self.accessToken = result.accessToken
+                    self.refreshToken = result.refreshToken
+                } catch {
+                    self.logOut()
+                    return
+                }
+            }
+        }
+    }
+
     func logOut() {
+        refreshTask?.cancel()
+        refreshTask = nil
         accessToken = nil
+        refreshToken = nil
         user = nil
         zoneId = nil
     }
