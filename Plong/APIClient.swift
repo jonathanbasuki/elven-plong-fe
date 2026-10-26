@@ -2,10 +2,10 @@ import Combine
 import Foundation
 
 /// Same LAN as the RTSP camera. Update if the Mac's IP changes.
-let apiBaseURL = "http://192.168.2.1:8080"
+let apiBaseURL = "http://192.168.110.197:8080"
 
 /// MediaMTX HLS preview (see docs/SETUP_HLS.md) — same Mac, different port, no auth.
-let hlsURL = URL(string: "http://192.168.2.1:8888/cam1/index.m3u8")!
+let hlsURL = URL(string: "http://192.168.110.197:8888/cam1/index.m3u8")!
 
 struct APIError: Error, LocalizedError {
     let code: String
@@ -72,9 +72,6 @@ enum ISO8601 {
 }
 
 enum API {
-    /// Single-zone POC: both roles watch this one zone.
-    static let zoneId = "z2"
-
     private static func send<Body: Encodable, Res: Decodable>(
         _ path: String, method: String, body: Body?, token: String?
     ) async throws -> Res {
@@ -125,12 +122,19 @@ enum API {
         )
     }
 
-    static func getZone(token: String) async throws -> ZoneStat {
+    /// Single-zone POC: no zone picker, so the app just discovers whichever zone the
+    /// server returns first rather than hardcoding an id that can drift out of sync
+    /// with zones.json (the cctv worker's own source of zone ids).
+    static func listZones(token: String) async throws -> [ZoneStat] {
+        try await get("/api/v1/dispatch/zones", token: token)
+    }
+
+    static func getZone(zoneId: String, token: String) async throws -> ZoneStat {
         try await get("/api/v1/dispatch/zones/\(zoneId)", token: token)
     }
 
     /// nil when no broadcast has ever been created for this zone (server 404s).
-    static func getCurrentBroadcast(token: String) async throws -> BroadcastState? {
+    static func getCurrentBroadcast(zoneId: String, token: String) async throws -> BroadcastState? {
         do {
             return try await get(
                 "/api/v1/dispatch/broadcasts/current?zoneId=\(zoneId)", token: token
@@ -141,7 +145,7 @@ enum API {
     }
 
     private struct CreateBroadcastBody: Encodable { let zoneId: String; let staffNeeded: Int }
-    static func createBroadcast(staffNeeded: Int, token: String) async throws -> BroadcastState {
+    static func createBroadcast(zoneId: String, staffNeeded: Int, token: String) async throws -> BroadcastState {
         try await send(
             "/api/v1/dispatch/broadcasts", method: "POST",
             body: CreateBroadcastBody(zoneId: zoneId, staffNeeded: staffNeeded), token: token
@@ -171,11 +175,13 @@ enum API {
 final class Session: ObservableObject {
     @Published var accessToken: String?
     @Published var user: LoggedInUser?
+    @Published var zoneId: String?
 
     var isManager: Bool { user?.role == "ops_manager" }
 
     func logOut() {
         accessToken = nil
         user = nil
+        zoneId = nil
     }
 }

@@ -7,7 +7,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if session.accessToken == nil {
+                if session.accessToken == nil || session.zoneId == nil {
                     LoginView()
                 } else if session.isManager {
                     ManagerContainer()
@@ -77,8 +77,8 @@ struct ManagerContainer: View {
                 Task {
                     createError = nil
                     do {
-                        guard let token = session.accessToken else { return }
-                        _ = try await API.createBroadcast(staffNeeded: staffNeeded, token: token)
+                        guard let token = session.accessToken, let zoneId = session.zoneId else { return }
+                        _ = try await API.createBroadcast(zoneId: zoneId, staffNeeded: staffNeeded, token: token)
                         showingBroadcast = false
                         page = 1
                     } catch {
@@ -107,8 +107,8 @@ struct ManagerOverviewPage: View {
         }
         .task {
             while !Task.isCancelled {
-                if let token = session.accessToken {
-                    zone = try? await API.getZone(token: token)
+                if let token = session.accessToken, let zoneId = session.zoneId {
+                    zone = try? await API.getZone(zoneId: zoneId, token: token)
                 }
                 try? await Task.sleep(for: .seconds(2))
             }
@@ -146,8 +146,8 @@ struct ManagerWaitingPage: View {
         }
         .task {
             while !Task.isCancelled {
-                if let token = session.accessToken {
-                    broadcast = try? await API.getCurrentBroadcast(token: token)
+                if let token = session.accessToken, let zoneId = session.zoneId {
+                    broadcast = try? await API.getCurrentBroadcast(zoneId: zoneId, token: token)
                 }
                 try? await Task.sleep(for: .seconds(1))
             }
@@ -185,8 +185,8 @@ struct ManagerProgressPage: View {
         }
         .task {
             while !Task.isCancelled {
-                if let token = session.accessToken {
-                    broadcast = try? await API.getCurrentBroadcast(token: token)
+                if let token = session.accessToken, let zoneId = session.zoneId {
+                    broadcast = try? await API.getCurrentBroadcast(zoneId: zoneId, token: token)
                 }
                 try? await Task.sleep(for: .seconds(1))
             }
@@ -217,13 +217,13 @@ struct StaffContainer: View {
                 )
                 if status == .notDelegating {
                     if broadcast?.status == "open" {
-                        TaskCard(secondsLeft: secondsLeft, accept: accept)
+                        TaskCard(secondsLeft: secondsLeft, zoneId: session.zoneId ?? "-", accept: accept)
                     }
                 } else {
                     StatusCard(
                         title: "Crowd control",
                         value: status == .done ? "Done" : "In progress",
-                        detail: "Zone \(API.zoneId)",
+                        detail: "Zone \(session.zoneId ?? "-")",
                         progress: status == .done ? 1 : 0.45
                     )
                     PrimaryButton(title: isActing ? "Marking done..." : "Mark as done", icon: "checkmark", action: markDone)
@@ -239,8 +239,8 @@ struct StaffContainer: View {
 
     private func poll() async {
         while !Task.isCancelled {
-            if let token = session.accessToken, let userId = session.user?.id {
-                let current = try? await API.getCurrentBroadcast(token: token)
+            if let token = session.accessToken, let userId = session.user?.id, let zoneId = session.zoneId {
+                let current = try? await API.getCurrentBroadcast(zoneId: zoneId, token: token)
                 broadcast = current
 
                 if let mine = current?.acceptedStaff.first(where: { $0.staffId == userId }) {
@@ -302,6 +302,7 @@ struct BroadcastSheet: View {
 
 struct TaskCard: View {
     let secondsLeft: Int
+    let zoneId: String
     let accept: () -> Void
 
     var body: some View {
@@ -316,7 +317,7 @@ struct TaskCard: View {
             Divider()
             Text("Crowd control")
                 .font(.title3.bold())
-            Text("Zone \(API.zoneId)")
+            Text("Zone \(zoneId)")
                 .foregroundStyle(.secondary)
             PrimaryButton(title: "Accept task", action: accept)
         }

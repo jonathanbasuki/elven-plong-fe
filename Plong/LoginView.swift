@@ -42,8 +42,15 @@ struct LoginView: View {
         Task {
             do {
                 let result = try await API.login(email: email, password: password)
+                let zones = try await API.listZones(token: result.accessToken)
+                guard let zoneId = zones.first?.zoneId else {
+                    errorMessage = "No zone is configured on the server yet"
+                    isLoading = false
+                    return
+                }
                 session.accessToken = result.accessToken
                 session.user = result.user
+                session.zoneId = zoneId
             } catch {
                 errorMessage = (error as? APIError)?.message ?? "Could not sign in"
             }
