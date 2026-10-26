@@ -164,6 +164,14 @@ enum API {
         )
     }
 
+    private struct PushTokenBody: Encodable { let pushToken: String }
+    static func registerPushToken(_ pushToken: String, token: String) async throws {
+        let _: StatusOnly = try await send(
+            "/api/v1/auth/push-token", method: "POST",
+            body: PushTokenBody(pushToken: pushToken), token: token
+        )
+    }
+
     static func finish(broadcastId: String, token: String) async throws {
         let _: StatusOnly = try await post(
             "/api/v1/dispatch/broadcasts/\(broadcastId)/finish", token: token

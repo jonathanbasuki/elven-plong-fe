@@ -16,6 +16,7 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Plong")
+            .task { AppDelegate.session = session }
             .toolbar {
                 if session.accessToken != nil {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -122,25 +123,31 @@ struct ManagerWaitingPage: View {
     let startBroadcast: () -> Void
     @State private var broadcast: BroadcastState?
 
-    private var secondsLeft: Int {
+    // Ticks from the device clock every second, independent of the network poll below —
+    // if a poll stalls (backgrounded app, slow network), the countdown keeps moving
+    // instead of freezing at its last-fetched value.
+    private static func secondsLeft(_ broadcast: BroadcastState?, _ now: Date) -> Int {
         guard let broadcast else { return 0 }
-        let remaining = ISO8601.parse(broadcast.expiresAt).timeIntervalSinceNow
+        let remaining = ISO8601.parse(broadcast.expiresAt).timeIntervalSince(now)
         return max(0, Int(remaining.rounded(.up)))
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            StatusCard(
-                title: "Staff confirmed",
-                value: "\(broadcast?.acceptedCount ?? 0) / \(broadcast?.staffNeeded ?? 0)",
-                detail: secondsLeft > 0 ? "Broadcast closes in \(secondsLeft)s" : "Broadcast closed",
-                progress: broadcast.map { Double($0.acceptedCount) / Double(max($0.staffNeeded, 1)) } ?? 0
-            )
-            if let broadcast, broadcast.status != "open" {
-                if broadcast.acceptedCount == 0 {
-                    PrimaryButton(title: "Try again", action: startBroadcast)
-                } else {
-                    PrimaryButton(title: "View progress", action: { page = 2 })
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let secondsLeft = Self.secondsLeft(broadcast, context.date)
+            VStack(alignment: .leading, spacing: 20) {
+                StatusCard(
+                    title: "Staff confirmed",
+                    value: "\(broadcast?.acceptedCount ?? 0) / \(broadcast?.staffNeeded ?? 0)",
+                    detail: secondsLeft > 0 ? "Broadcast closes in \(secondsLeft)s" : "Broadcast closed",
+                    progress: broadcast.map { Double($0.acceptedCount) / Double(max($0.staffNeeded, 1)) } ?? 0
+                )
+                if let broadcast, broadcast.status != "open" {
+                    if broadcast.acceptedCount == 0 {
+                        PrimaryButton(title: "Try again", action: startBroadcast)
+                    } else {
+                        PrimaryButton(title: "View progress", action: { page = 2 })
+                    }
                 }
             }
         }
@@ -204,34 +211,47 @@ struct StaffContainer: View {
     @EnvironmentObject var session: Session
     @State private var status: StaffStatus = .notDelegating
     @State private var broadcast: BroadcastState?
-    @State private var secondsLeft = 20
     @State private var isActing = false
 
+    // Ticks from the device clock every second, independent of the network poll below —
+    // if a poll stalls (backgrounded app, slow network), the countdown keeps moving
+    // instead of freezing at its last-fetched value.
+    private static func secondsLeft(_ broadcast: BroadcastState?, _ now: Date) -> Int {
+        guard let broadcast, broadcast.status == "open" else { return 0 }
+        let remaining = ISO8601.parse(broadcast.expiresAt).timeIntervalSince(now)
+        return max(0, Int(remaining.rounded(.up)))
+    }
+
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                PageHeader(
-                    eyebrow: "Staff",
-                    title: status == .notDelegating ? "New task" : "Your task",
-                    page: status == .notDelegating ? 0 : 1
-                )
-                if status == .notDelegating {
-                    if broadcast?.status == "open" {
-                        TaskCard(secondsLeft: secondsLeft, zoneId: session.zoneId ?? "-", accept: accept)
-                    }
-                } else {
-                    StatusCard(
-                        title: "Crowd control",
-                        value: status == .done ? "Done" : "In progress",
-                        detail: "Zone \(session.zoneId ?? "-")",
-                        progress: status == .done ? 1 : 0.45
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    PageHeader(
+                        eyebrow: "Staff",
+                        title: status == .notDelegating ? "New task" : "Your task",
+                        page: status == .notDelegating ? 0 : 1
                     )
-                    PrimaryButton(title: isActing ? "Marking done..." : "Mark as done", icon: "checkmark", action: markDone)
-                        .disabled(status != .delegating || isActing)
+                    if status == .notDelegating {
+                        if broadcast?.status == "open" {
+                            TaskCard(
+                                secondsLeft: Self.secondsLeft(broadcast, context.date),
+                                zoneId: session.zoneId ?? "-", accept: accept
+                            )
+                        }
+                    } else {
+                        StatusCard(
+                            title: "Crowd control",
+                            value: status == .done ? "Done" : "In progress",
+                            detail: "Zone \(session.zoneId ?? "-")",
+                            progress: status == .done ? 1 : 0.45
+                        )
+                        PrimaryButton(title: isActing ? "Marking done..." : "Mark as done", icon: "checkmark", action: markDone)
+                            .disabled(status != .delegating || isActing)
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 18)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 18)
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .task { await poll() }
@@ -247,10 +267,6 @@ struct StaffContainer: View {
                     status = mine.completedAt != nil ? .done : .delegating
                 } else {
                     status = .notDelegating
-                    if let expiresAt = current?.expiresAt, current?.status == "open" {
-                        let remaining = ISO8601.parse(expiresAt).timeIntervalSinceNow
-                        secondsLeft = max(0, Int(remaining.rounded(.up)))
-                    }
                 }
             }
             try? await Task.sleep(for: .seconds(1))

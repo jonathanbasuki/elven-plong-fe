@@ -51,6 +51,7 @@ struct LoginView: View {
                 session.accessToken = result.accessToken
                 session.user = result.user
                 session.zoneId = zoneId
+                PushNotifications.requestPermission()
             } catch {
                 errorMessage = (error as? APIError)?.message ?? "Could not sign in"
             }
