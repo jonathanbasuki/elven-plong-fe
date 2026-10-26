@@ -18,15 +18,15 @@ public final class CrowdMapViewModel {
     }
     
     public var totalCrowd: Int {
-        repository.zones.reduce(0) { $0 + $1.crowdCount }
+        repository.zones.reduce(0) { $0 + $1.currentCount }
     }
     
     public var highCrowdZoneCount: Int {
-        repository.zones.filter { $0.crowdSeverity == .high || $0.crowdSeverity == .critical }.count
+        repository.zones.filter { $0.status == .crowded || $0.status == .warning }.count
     }
     
     public var confirmedAssignmentsCount: Int {
-        repository.confirmedAssignments.count
+        repository.broadcasts.filter { $0.status == .open || $0.status == .closed }.count
     }
     
     public var unreadAlertsCount: Int {
@@ -37,7 +37,7 @@ public final class CrowdMapViewModel {
         zone.assignedStaffIDs.compactMap { repository.getStaff(by: $0) }
     }
     
-    public func selectZone(zoneID: UUID) {
+    public func selectZone(zoneID: String) {
         router.navigate(to: .zoneDetail(zoneID: zoneID))
     }
     

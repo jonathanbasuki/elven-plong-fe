@@ -59,6 +59,16 @@ public struct CrowdFlowRootView: View {
                 )
             )
             
+        case .createBroadcast(let zoneID):
+            CreateBroadcastView(
+                viewModel: CreateBroadcastViewModel(
+                    zoneID: zoneID,
+                    repository: repository,
+                    coordinator: coordinator,
+                    router: router
+                )
+            )
+            
         case .broadcast(let zoneID):
             BroadcastView(
                 viewModel: BroadcastViewModel(

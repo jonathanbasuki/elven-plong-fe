@@ -3,6 +3,7 @@ import Observation
 
 @Observable
 @MainActor
+@available(*, deprecated, message: "Use BroadcastViewModel instead")
 public final class AssignmentStatusViewModel {
     public let requestID: UUID
     public let repository: CrowdFlowRepositoryProtocol

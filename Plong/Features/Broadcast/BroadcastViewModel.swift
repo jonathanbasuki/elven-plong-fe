@@ -4,13 +4,15 @@ import Observation
 @Observable
 @MainActor
 public final class BroadcastViewModel {
-    public let zoneID: UUID
+    public let zoneID: String
     public let repository: CrowdFlowRepositoryProtocol
     public let coordinator: AssignmentCoordinator
     public let router: NavigationRouter
     
+    public var errorMessage: String? = nil
+    
     public init(
-        zoneID: UUID,
+        zoneID: String,
         repository: CrowdFlowRepositoryProtocol,
         coordinator: AssignmentCoordinator,
         router: NavigationRouter
@@ -25,33 +27,71 @@ public final class BroadcastViewModel {
         repository.getZone(by: zoneID)
     }
     
-    public var sessionStatus: BroadcastSessionStatus {
-        coordinator.sessionStatus
+    public var broadcast: BroadcastSession? {
+        coordinator.activeBroadcast ?? repository.getCurrentBroadcast(for: zoneID)
     }
     
     public var remainingSeconds: Int {
         coordinator.remainingSeconds
     }
     
-    public var taskType: AssignmentTaskType {
-        coordinator.currentTaskType
+    public var staffMembers: [SecurityStaff] {
+        repository.staffMembers
     }
     
-    public var currentRequest: AssignmentRequest? {
-        coordinator.currentRequest
+    public var availableStaffForSimulation: [SecurityStaff] {
+        guard let b = broadcast else { return [] }
+        let acceptedIds = Set(b.acceptedStaff.map { $0.staffId })
+        return staffMembers.filter { !acceptedIds.contains($0.id) }
     }
     
-    public var attemptedCandidatesCount: Int {
-        coordinator.attemptedStaffIDs.count
+    public var isAllDone: Bool {
+        broadcast?.isAllCompleted == true
+    }
+    
+    // MARK: - Actions
+    
+    public func tryAgain() {
+        errorMessage = nil
+        do {
+            try coordinator.retryBroadcast()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    public func simulateStaffAccept(staffId: UUID) {
+        errorMessage = nil
+        do {
+            try coordinator.staffRespond(staffId: staffId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    public func simulateStaffComplete(staffId: UUID) {
+        errorMessage = nil
+        do {
+            try coordinator.staffComplete(staffId: staffId)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+    
+    public func finishBroadcast() {
+        errorMessage = nil
+        do {
+            try coordinator.finishBroadcast()
+            // Contract: finish ends the broadcast and sends manager back to page 1
+            router.pop()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
     
     public func cancelBroadcast() {
         coordinator.cancelBroadcast()
         router.pop()
-    }
-    
-    public func viewAssignmentStatus(requestID: UUID) {
-        router.navigate(to: .assignmentStatus(requestID: requestID))
     }
     
     public func backToZone() {
@@ -60,29 +100,5 @@ public final class BroadcastViewModel {
     
     public func backToMap() {
         router.popToRoot()
-    }
-    
-    // MARK: - Debug Mock Controls
-    
-    public func debugSimulateAccept() {
-        coordinator.acceptCurrentRequest()
-    }
-    
-    public func debugSimulateDecline() {
-        coordinator.declineCurrentRequest()
-    }
-    
-    public func debugSimulateTimeout() {
-        if let request = coordinator.currentRequest {
-            coordinator.handleTimeout(for: request.id)
-        }
-    }
-    
-    public func debugToggleForceNoCandidates() {
-        coordinator.debugForceNoCandidates.toggle()
-        if coordinator.debugForceNoCandidates {
-            // Re-trigger dispatch with empty candidate pool
-            coordinator.startBroadcast(zoneID: zoneID, taskType: taskType)
-        }
     }
 }

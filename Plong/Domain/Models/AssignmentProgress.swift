@@ -11,7 +11,7 @@ public struct ConfirmedAssignment: Identifiable, Codable, Equatable, Sendable {
     public let id: UUID
     public let requestID: UUID
     public let staffID: UUID
-    public let destinationZoneID: UUID
+    public let destinationZoneID: String
     public let taskType: AssignmentTaskType
     public var progress: AssignmentProgressStatus
     public let confirmedAt: Date
@@ -21,7 +21,7 @@ public struct ConfirmedAssignment: Identifiable, Codable, Equatable, Sendable {
         id: UUID = UUID(),
         requestID: UUID,
         staffID: UUID,
-        destinationZoneID: UUID,
+        destinationZoneID: String,
         taskType: AssignmentTaskType,
         progress: AssignmentProgressStatus = .accepted,
         confirmedAt: Date = Date(),

@@ -11,7 +11,7 @@ public enum AlertType: String, Codable, CaseIterable, Sendable {
 
 public struct CrowdAlert: Identifiable, Codable, Equatable, Sendable {
     public let id: UUID
-    public let zoneID: UUID
+    public let zoneID: String
     public let alertType: AlertType
     public let title: String
     public let message: String
@@ -21,7 +21,7 @@ public struct CrowdAlert: Identifiable, Codable, Equatable, Sendable {
     
     public init(
         id: UUID = UUID(),
-        zoneID: UUID,
+        zoneID: String,
         alertType: AlertType,
         title: String,
         message: String,

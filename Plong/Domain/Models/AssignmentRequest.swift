@@ -15,7 +15,7 @@ public enum RequestStatus: String, Codable, CaseIterable, Sendable {
 
 public struct AssignmentRequest: Identifiable, Codable, Equatable, Sendable {
     public let id: UUID
-    public let destinationZoneID: UUID
+    public let destinationZoneID: String
     public let staffID: UUID
     public let taskType: AssignmentTaskType
     public var status: RequestStatus
@@ -24,7 +24,7 @@ public struct AssignmentRequest: Identifiable, Codable, Equatable, Sendable {
     
     public init(
         id: UUID = UUID(),
-        destinationZoneID: UUID,
+        destinationZoneID: String,
         staffID: UUID,
         taskType: AssignmentTaskType = .security,
         status: RequestStatus = .pending,

@@ -28,17 +28,13 @@ public final class AlertsViewModel {
             router.navigate(to: .zoneDetail(zoneID: alert.zoneID))
             
         case .securityBroadcastSent, .assignmentAccepted, .assignmentRequestExpired:
-            // Assignment alerts navigate to assignment status if request ID is known, else zone detail
-            if let requestID = alert.relatedRequestID {
-                router.navigate(to: .assignmentStatus(requestID: requestID))
-            } else {
-                router.navigate(to: .zoneDetail(zoneID: alert.zoneID))
-            }
+            // If broadcast is active, navigate to live broadcast or zone detail
+            router.navigate(to: .zoneDetail(zoneID: alert.zoneID))
         }
     }
     
-    public func getZoneName(for zoneID: UUID) -> String {
-        repository.getZone(by: zoneID)?.name ?? "Zone"
+    public func getZoneName(for zoneID: String) -> String {
+        repository.getZone(by: zoneID)?.name ?? "Zone \(zoneID)"
     }
     
     public func navigateBack() {
