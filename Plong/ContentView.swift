@@ -6,8 +6,10 @@ struct ContentView: View {
     @State private var staffPage = 0
     @State private var showingBroadcast = false
     @State private var staffNeeded = 4
-    @State private var confirmedStaff = 2
-    @State private var taskAccepted = false
+    @State private var confirmedStaff = 0
+    @State private var doneStaff = 0
+    @State private var broadcastSecondsLeft = 20
+    @State private var staffStatus: StaffStatus = .notDelegating
 
     var body: some View {
         NavigationStack {
@@ -15,11 +17,13 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     RolePicker(role: $role)
                     if role == .manager {
-                        ManagerFlow(page: $managerPage, confirmedStaff: confirmedStaff) {
+                        ManagerFlow(page: $managerPage, confirmedStaff: confirmedStaff, staffNeeded: staffNeeded, doneStaff: doneStaff, broadcastSecondsLeft: $broadcastSecondsLeft, startBroadcast: startBroadcast) {
                             showingBroadcast = true
                         }
                     } else {
-                        StaffFlow(page: $staffPage, taskAccepted: $taskAccepted)
+                        StaffFlow(page: $staffPage, status: $staffStatus) {
+                            doneStaff = min(doneStaff + 1, confirmedStaff)
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -31,11 +35,19 @@ struct ContentView: View {
                 BroadcastSheet(staffNeeded: $staffNeeded) {
                     showingBroadcast = false
                     confirmedStaff = 0
+                    doneStaff = 0
+                    broadcastSecondsLeft = 20
                     managerPage = 1
                 }
                 .presentationDetents([.medium])
             }
         }
+    }
+
+    private func startBroadcast() {
+        confirmedStaff = 0
+        doneStaff = 0
+        broadcastSecondsLeft = 20
     }
 }
 
@@ -79,6 +91,10 @@ struct PageHeader: View {
 struct ManagerFlow: View {
     @Binding var page: Int
     let confirmedStaff: Int
+    let staffNeeded: Int
+    let doneStaff: Int
+    @Binding var broadcastSecondsLeft: Int
+    let startBroadcast: () -> Void
     let broadcast: () -> Void
 
     var body: some View {
@@ -92,43 +108,62 @@ struct ManagerFlow: View {
                 CCTVPlaceholder()
                 PrimaryButton(title: "Broadcast task", icon: "paperplane.fill", action: broadcast)
             } else if page == 1 {
-                StatusCard(title: "Staff confirmed", value: "\(confirmedStaff) / 4", detail: "Waiting for confirmation", progress: Double(confirmedStaff) / 4)
-                SecondaryButton(title: "Cancel task", action: { page = 0 })
-                PrimaryButton(title: "View progress", action: { page = 2 })
+                StatusCard(title: "Staff confirmed", value: "\(confirmedStaff) / \(staffNeeded)", detail: broadcastSecondsLeft > 0 ? "Broadcast closes in \(broadcastSecondsLeft)s" : "Broadcast closed", progress: Double(confirmedStaff) / Double(staffNeeded))
+                if broadcastSecondsLeft == 0 && confirmedStaff == 0 {
+                    PrimaryButton(title: "Try again", action: startBroadcast)
+                }
+                if broadcastSecondsLeft == 0 && confirmedStaff >= 1 {
+                    PrimaryButton(title: "View progress", action: { page = 2 })
+                }
             } else {
-                StatusCard(title: "Task progress", value: "In Progress", detail: "", progress: 0)
-                ProgressRow(name: "Staff A", status: "Done", progress: 1)
-                ProgressRow(name: "Staff B", status: "Working", progress: 0.5)
-                ProgressRow(name: "Staff C", status: "Waiting", progress: 0)
-                SecondaryButton(title: "Back to overview", action: { page = 0 })
+                let progress = confirmedStaff == 0 ? 0 : Double(doneStaff) / Double(confirmedStaff)
+                StatusCard(title: "Task progress", value: "\(doneStaff) / \(confirmedStaff) staff done", detail: "Accepted staff", progress: progress)
+                PrimaryButton(title: "Finish", action: { page = 0 })
+                    .disabled(doneStaff != confirmedStaff || confirmedStaff < 1)
             }
+        }
+        .task(id: page == 1 ? broadcastSecondsLeft : -1) {
+            guard page == 1, broadcastSecondsLeft > 0 else { return }
+            try? await Task.sleep(for: .seconds(1))
+            if !Task.isCancelled { broadcastSecondsLeft -= 1 }
         }
     }
 }
 
+enum StaffStatus {
+    case notDelegating
+    case delegating
+    case done
+}
+
 struct StaffFlow: View {
     @Binding var page: Int
-    @Binding var taskAccepted: Bool
-    @State private var secondsLeft = 10
+    @Binding var status: StaffStatus
+    let markDone: () -> Void
+    @State private var secondsLeft = 20
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            PageHeader(eyebrow: "Staff", title: page == 0 ? "New task" : "Your task", page: page)
-            if page == 0 && !taskAccepted {
+            PageHeader(eyebrow: "Staff", title: status == .delegating ? "Your task" : "New task", page: page)
+            if status == .notDelegating {
                 TaskCard(secondsLeft: secondsLeft) {
-                    taskAccepted = true
+                    status = .delegating
                     page = 1
                 }
-                .onAppear { secondsLeft = 10 }
+                .onAppear { secondsLeft = 20 }
                 .task {
-                    while secondsLeft > 0 && !taskAccepted {
+                    while secondsLeft > 0 && status == .notDelegating {
                         try? await Task.sleep(for: .seconds(1))
                         secondsLeft -= 1
                     }
                 }
             } else {
-                StatusCard(title: "Crowd control", value: "In progress", detail: "Zone B · Central gate", progress: 0.45)
-                PrimaryButton(title: "Mark as done", icon: "checkmark", action: { page = 0; taskAccepted = false })
+                StatusCard(title: "Crowd control", value: status == .done ? "Done" : "In progress", detail: "Zone B · Central gate", progress: status == .done ? 1 : 0.45)
+                PrimaryButton(title: "Mark as done", icon: "checkmark", action: {
+                    markDone()
+                    status = .done
+                })
+                .disabled(status != .delegating)
             }
         }
     }
