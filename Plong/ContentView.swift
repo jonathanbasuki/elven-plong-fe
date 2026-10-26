@@ -1,76 +1,30 @@
+import AVKit
 import SwiftUI
 
 struct ContentView: View {
-    @State private var role: UserRole = .manager
-    @State private var managerPage = 0
-    @State private var staffPage = 0
-    @State private var showingBroadcast = false
-    @State private var staffNeeded = 4
-    @State private var confirmedStaff = 0
-    @State private var doneStaff = 0
-    @State private var broadcastSecondsLeft = 20
-    @State private var staffStatus: StaffStatus = .notDelegating
+    @StateObject private var session = Session()
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    RolePicker(role: $role)
-                    if role == .manager {
-                        ManagerFlow(page: $managerPage, confirmedStaff: confirmedStaff, staffNeeded: staffNeeded, doneStaff: doneStaff, broadcastSecondsLeft: $broadcastSecondsLeft, startBroadcast: startBroadcast) {
-                            showingBroadcast = true
-                        }
-                    } else {
-                        StaffFlow(page: $staffPage, status: $staffStatus) {
-                            doneStaff = min(doneStaff + 1, confirmedStaff)
-                        }
+            Group {
+                if session.accessToken == nil {
+                    LoginView()
+                } else if session.isManager {
+                    ManagerContainer()
+                } else {
+                    StaffContainer()
+                }
+            }
+            .navigationTitle("Plong")
+            .toolbar {
+                if session.accessToken != nil {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Log out", action: session.logOut)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 18)
-            }
-            .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Plong")
-            .sheet(isPresented: $showingBroadcast) {
-                BroadcastSheet(staffNeeded: $staffNeeded) {
-                    showingBroadcast = false
-                    confirmedStaff = 0
-                    doneStaff = 0
-                    broadcastSecondsLeft = 20
-                    managerPage = 1
-                }
-                .presentationDetents([.medium])
             }
         }
-    }
-
-    private func startBroadcast() {
-        confirmedStaff = 0
-        doneStaff = 0
-        broadcastSecondsLeft = 20
-    }
-}
-
-enum UserRole: String, CaseIterable {
-    case manager = "Manager"
-    case staff = "Staff"
-}
-
-struct RolePicker: View {
-    @Binding var role: UserRole
-
-    var body: some View {
-        HStack(spacing: 8) {
-            ForEach(UserRole.allCases, id: \.self) { item in
-                Button(item.rawValue) { role = item }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(role == item ? .white : .primary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 11)
-                    .background(role == item ? Color.primary : Color(uiColor: .secondarySystemGroupedBackground))
-                    .clipShape(Capsule())
-            }
-        }
+        .environmentObject(session)
     }
 }
 
@@ -88,44 +42,154 @@ struct PageHeader: View {
     }
 }
 
-struct ManagerFlow: View {
-    @Binding var page: Int
-    let confirmedStaff: Int
-    let staffNeeded: Int
-    let doneStaff: Int
-    @Binding var broadcastSecondsLeft: Int
-    let startBroadcast: () -> Void
+struct ManagerContainer: View {
+    @EnvironmentObject var session: Session
+    @State private var page = 0
+    @State private var showingBroadcast = false
+    @State private var staffNeeded = 4
+    @State private var createError: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                PageHeader(
+                    eyebrow: "Manager",
+                    title: ["Overview", "Looking for staff", "Task progress"][page],
+                    page: page
+                )
+                if page == 0 {
+                    ManagerOverviewPage { showingBroadcast = true }
+                } else if page == 1 {
+                    ManagerWaitingPage(
+                        page: $page,
+                        startBroadcast: { showingBroadcast = true }
+                    )
+                } else {
+                    ManagerProgressPage(page: $page)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
+        .sheet(isPresented: $showingBroadcast) {
+            BroadcastSheet(staffNeeded: $staffNeeded, errorMessage: createError) {
+                Task {
+                    createError = nil
+                    do {
+                        guard let token = session.accessToken else { return }
+                        _ = try await API.createBroadcast(staffNeeded: staffNeeded, token: token)
+                        showingBroadcast = false
+                        page = 1
+                    } catch {
+                        createError = (error as? APIError)?.message ?? "Could not start broadcast"
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
+    }
+}
+
+struct ManagerOverviewPage: View {
+    @EnvironmentObject var session: Session
+    @State private var zone: ZoneStat?
     let broadcast: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            PageHeader(eyebrow: "Manager", title: ["Overview", "Looking for staff", "Task progress"][page], page: page)
-            if page == 0 {
-                HStack(spacing: 12) {
-                    StatCard(label: "Total crowd", value: "1,248", icon: "person.3.fill")
-                    StatCard(label: "Peak", value: "18:40", icon: "chart.line.uptrend.xyaxis")
+            HStack(spacing: 12) {
+                StatCard(label: "Total crowd", value: zone.map { "\($0.currentCount)" } ?? "-", icon: "person.3.fill")
+                StatCard(label: "Status", value: (zone?.status ?? "-").capitalized, icon: "chart.line.uptrend.xyaxis")
+            }
+            CCTVPreview()
+            PrimaryButton(title: "Broadcast task", icon: "paperplane.fill", action: broadcast)
+        }
+        .task {
+            while !Task.isCancelled {
+                if let token = session.accessToken {
+                    zone = try? await API.getZone(token: token)
                 }
-                CCTVPlaceholder()
-                PrimaryButton(title: "Broadcast task", icon: "paperplane.fill", action: broadcast)
-            } else if page == 1 {
-                StatusCard(title: "Staff confirmed", value: "\(confirmedStaff) / \(staffNeeded)", detail: broadcastSecondsLeft > 0 ? "Broadcast closes in \(broadcastSecondsLeft)s" : "Broadcast closed", progress: Double(confirmedStaff) / Double(staffNeeded))
-                if broadcastSecondsLeft == 0 && confirmedStaff == 0 {
-                    PrimaryButton(title: "Try again", action: startBroadcast)
-                }
-                if broadcastSecondsLeft == 0 && confirmedStaff >= 1 {
-                    PrimaryButton(title: "View progress", action: { page = 2 })
-                }
-            } else {
-                let progress = confirmedStaff == 0 ? 0 : Double(doneStaff) / Double(confirmedStaff)
-                StatusCard(title: "Task progress", value: "\(doneStaff) / \(confirmedStaff) staff done", detail: "Accepted staff", progress: progress)
-                PrimaryButton(title: "Finish", action: { page = 0 })
-                    .disabled(doneStaff != confirmedStaff || confirmedStaff < 1)
+                try? await Task.sleep(for: .seconds(2))
             }
         }
-        .task(id: page == 1 ? broadcastSecondsLeft : -1) {
-            guard page == 1, broadcastSecondsLeft > 0 else { return }
-            try? await Task.sleep(for: .seconds(1))
-            if !Task.isCancelled { broadcastSecondsLeft -= 1 }
+    }
+}
+
+struct ManagerWaitingPage: View {
+    @EnvironmentObject var session: Session
+    @Binding var page: Int
+    let startBroadcast: () -> Void
+    @State private var broadcast: BroadcastState?
+
+    private var secondsLeft: Int {
+        guard let broadcast else { return 0 }
+        let remaining = ISO8601.parse(broadcast.expiresAt).timeIntervalSinceNow
+        return max(0, Int(remaining.rounded(.up)))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            StatusCard(
+                title: "Staff confirmed",
+                value: "\(broadcast?.acceptedCount ?? 0) / \(broadcast?.staffNeeded ?? 0)",
+                detail: secondsLeft > 0 ? "Broadcast closes in \(secondsLeft)s" : "Broadcast closed",
+                progress: broadcast.map { Double($0.acceptedCount) / Double(max($0.staffNeeded, 1)) } ?? 0
+            )
+            if let broadcast, broadcast.status != "open" {
+                if broadcast.acceptedCount == 0 {
+                    PrimaryButton(title: "Try again", action: startBroadcast)
+                } else {
+                    PrimaryButton(title: "View progress", action: { page = 2 })
+                }
+            }
+        }
+        .task {
+            while !Task.isCancelled {
+                if let token = session.accessToken {
+                    broadcast = try? await API.getCurrentBroadcast(token: token)
+                }
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+    }
+}
+
+struct ManagerProgressPage: View {
+    @EnvironmentObject var session: Session
+    @Binding var page: Int
+    @State private var broadcast: BroadcastState?
+    @State private var isFinishing = false
+
+    var body: some View {
+        let accepted = broadcast?.acceptedCount ?? 0
+        let completed = broadcast?.completedCount ?? 0
+        let progress = accepted == 0 ? 0 : Double(completed) / Double(accepted)
+        VStack(alignment: .leading, spacing: 20) {
+            StatusCard(
+                title: "Task progress",
+                value: "\(completed) / \(accepted) staff done",
+                detail: "Accepted staff",
+                progress: progress
+            )
+            PrimaryButton(title: isFinishing ? "Finishing..." : "Finish") {
+                guard let broadcast, let token = session.accessToken else { return }
+                isFinishing = true
+                Task {
+                    try? await API.finish(broadcastId: broadcast.broadcastId, token: token)
+                    isFinishing = false
+                    page = 0
+                }
+            }
+            .disabled(isFinishing || completed != accepted || accepted < 1)
+        }
+        .task {
+            while !Task.isCancelled {
+                if let token = session.accessToken {
+                    broadcast = try? await API.getCurrentBroadcast(token: token)
+                }
+                try? await Task.sleep(for: .seconds(1))
+            }
         }
     }
 }
@@ -136,41 +200,88 @@ enum StaffStatus {
     case done
 }
 
-struct StaffFlow: View {
-    @Binding var page: Int
-    @Binding var status: StaffStatus
-    let markDone: () -> Void
+struct StaffContainer: View {
+    @EnvironmentObject var session: Session
+    @State private var status: StaffStatus = .notDelegating
+    @State private var broadcast: BroadcastState?
     @State private var secondsLeft = 20
+    @State private var isActing = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            PageHeader(eyebrow: "Staff", title: status == .delegating ? "Your task" : "New task", page: page)
-            if status == .notDelegating {
-                TaskCard(secondsLeft: secondsLeft) {
-                    status = .delegating
-                    page = 1
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                PageHeader(
+                    eyebrow: "Staff",
+                    title: status == .notDelegating ? "New task" : "Your task",
+                    page: status == .notDelegating ? 0 : 1
+                )
+                if status == .notDelegating {
+                    if broadcast?.status == "open" {
+                        TaskCard(secondsLeft: secondsLeft, accept: accept)
+                    }
+                } else {
+                    StatusCard(
+                        title: "Crowd control",
+                        value: status == .done ? "Done" : "In progress",
+                        detail: "Zone \(API.zoneId)",
+                        progress: status == .done ? 1 : 0.45
+                    )
+                    PrimaryButton(title: isActing ? "Marking done..." : "Mark as done", icon: "checkmark", action: markDone)
+                        .disabled(status != .delegating || isActing)
                 }
-                .onAppear { secondsLeft = 20 }
-                .task {
-                    while secondsLeft > 0 && status == .notDelegating {
-                        try? await Task.sleep(for: .seconds(1))
-                        secondsLeft -= 1
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
+        }
+        .background(Color(uiColor: .systemGroupedBackground))
+        .task { await poll() }
+    }
+
+    private func poll() async {
+        while !Task.isCancelled {
+            if let token = session.accessToken, let userId = session.user?.id {
+                let current = try? await API.getCurrentBroadcast(token: token)
+                broadcast = current
+
+                if let mine = current?.acceptedStaff.first(where: { $0.staffId == userId }) {
+                    status = mine.completedAt != nil ? .done : .delegating
+                } else {
+                    status = .notDelegating
+                    if let expiresAt = current?.expiresAt, current?.status == "open" {
+                        let remaining = ISO8601.parse(expiresAt).timeIntervalSinceNow
+                        secondsLeft = max(0, Int(remaining.rounded(.up)))
                     }
                 }
-            } else {
-                StatusCard(title: "Crowd control", value: status == .done ? "Done" : "In progress", detail: "Zone B · Central gate", progress: status == .done ? 1 : 0.45)
-                PrimaryButton(title: "Mark as done", icon: "checkmark", action: {
-                    markDone()
-                    status = .done
-                })
-                .disabled(status != .delegating)
             }
+            try? await Task.sleep(for: .seconds(1))
+        }
+    }
+
+    private func accept() {
+        guard let broadcast, let token = session.accessToken, !isActing else { return }
+        isActing = true
+        Task {
+            try? await API.respond(broadcastId: broadcast.broadcastId, token: token)
+            isActing = false
+        }
+    }
+
+    private func markDone() {
+        guard let broadcast, let token = session.accessToken, !isActing else { return }
+        isActing = true
+        Task {
+            // No optimistic local update: poll() re-derives status from the server
+            // every second, so a failed call here just leaves the button enabled
+            // instead of silently showing a false "not delegating" state.
+            try? await API.complete(broadcastId: broadcast.broadcastId, token: token)
+            isActing = false
         }
     }
 }
 
 struct BroadcastSheet: View {
     @Binding var staffNeeded: Int
+    let errorMessage: String?
     let send: () -> Void
 
     var body: some View {
@@ -180,6 +291,9 @@ struct BroadcastSheet: View {
                 .padding()
                 .background(Color(uiColor: .secondarySystemGroupedBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 14))
+            if let errorMessage {
+                Text(errorMessage).font(.footnote).foregroundStyle(.red)
+            }
             PrimaryButton(title: "Send task", action: send)
         }
         .padding(24)
@@ -202,7 +316,7 @@ struct TaskCard: View {
             Divider()
             Text("Crowd control")
                 .font(.title3.bold())
-            Text("Zone B · Central gate")
+            Text("Zone \(API.zoneId)")
                 .foregroundStyle(.secondary)
             PrimaryButton(title: "Accept task", action: accept)
         }
@@ -211,22 +325,37 @@ struct TaskCard: View {
     }
 }
 
-struct CCTVPlaceholder: View {
+struct CCTVPreview: View {
+    // Fresh AVPlayer per appearance: avoids holding a stale/buffered player across
+    // tab switches, at the cost of a short reconnect each time the page re-shows.
+    @State private var player = AVPlayer(url: hlsURL)
+
     var body: some View {
-        ZStack {
-            Rectangle().fill(Color.black)
-            VStack(spacing: 10) {
-                Image(systemName: "video.fill").font(.title)
-                Text("LIVE CCTV").font(.caption.weight(.bold).monospaced())
+        LivePlayerView(player: player)
+            .frame(height: 190)
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay(alignment: .topLeading) {
+                Text("CAM 01").font(.caption2.monospaced()).foregroundStyle(.white).padding(12)
             }
-            .foregroundStyle(.white.opacity(0.75))
-        }
-        .frame(height: 190)
-        .clipShape(RoundedRectangle(cornerRadius: 18))
-        .overlay(alignment: .topLeading) {
-            Text("CAM 01").font(.caption2.monospaced()).foregroundStyle(.white).padding(12)
-        }
+            .onAppear { player.play() }
+            .onDisappear { player.pause() }
     }
+}
+
+/// AVPlayerViewController with controls hidden — VideoPlayer always shows a
+/// pause/scrub bar with no way to disable just that, which would let a manager
+/// pause the feed and mistake the frozen frame for "live".
+struct LivePlayerView: UIViewControllerRepresentable {
+    let player: AVPlayer
+
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.showsPlaybackControls = false
+        return controller
+    }
+
+    func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {}
 }
 
 struct StatCard: View {
@@ -251,16 +380,6 @@ struct StatusCard: View {
             Text(detail).font(.subheadline).foregroundStyle(.secondary)
             ProgressView(value: progress).tint(.primary)
         }.padding(20).cardStyle()
-    }
-}
-
-struct ProgressRow: View {
-    let name: String; let status: String; let progress: Double
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack { Text(name).font(.subheadline.bold()); Spacer(); Text(status).font(.caption).foregroundStyle(.secondary) }
-            ProgressView(value: progress).tint(.primary)
-        }
     }
 }
 

@@ -31,6 +31,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "58CD0D04308AFD5E00C0CF29"
                BuildableName = "Plong.app"
+               BlueprintName = "Plong"
                ReferencedContainer = "container:Plong.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
