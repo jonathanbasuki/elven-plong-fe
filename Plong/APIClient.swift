@@ -1,11 +1,12 @@
 import Combine
 import Foundation
+import UIKit
 
 /// Same LAN as the RTSP camera. Update if the Mac's IP changes.
-let apiBaseURL = "http://192.168.110.197:8080"
+let apiBaseURL = "http://192.168.2.1:8080"
 
 /// MediaMTX HLS preview (see docs/SETUP_HLS.md) — same Mac, different port, no auth.
-let hlsURL = URL(string: "http://192.168.110.197:8888/cam1/index.m3u8")!
+let hlsURL = URL(string: "http://192.168.2.1:8888/cam1/index.m3u8")!
 
 struct APIError: Error, LocalizedError {
     let code: String
@@ -140,6 +141,21 @@ enum API {
         )
     }
 
+    /// Revokes the refresh token and clears the device's push token server-side —
+    /// otherwise this device keeps getting pushes for the account after signing out.
+    static func logout(refreshToken: String) async throws {
+        let _: StatusOnly = try await send(
+            "/api/v1/auth/logout", method: "POST",
+            body: RefreshBody(refreshToken: refreshToken), token: nil
+        )
+    }
+
+    /// /auth/refresh only returns a token pair, not the user — this fills in `user`
+    /// when silently restoring a session from a saved refresh token at launch.
+    static func profile(token: String) async throws -> LoggedInUser {
+        try await get("/api/v1/auth/profile", token: token)
+    }
+
     /// Single-zone POC: no zone picker, so the app just discovers whichever zone the
     /// server returns first rather than hardcoding an id that can drift out of sync
     /// with zones.json (the cctv worker's own source of zone ids).
@@ -202,8 +218,12 @@ final class Session: ObservableObject {
     @Published var accessToken: String?
     @Published var user: LoggedInUser?
     @Published var zoneId: String?
+    // Starts true so ContentView can show a loading state instead of flashing the
+    // login screen for an instant while restoreSession() checks the Keychain.
+    @Published var isRestoringSession = true
     private var refreshToken: String?
     private var refreshTask: Task<Void, Never>?
+    private static let refreshTokenKey = "refreshToken"
 
     var isManager: Bool { user?.role == "ops_manager" }
 
@@ -211,7 +231,27 @@ final class Session: ObservableObject {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         self.user = user
+        Keychain.save(refreshToken, for: Self.refreshTokenKey)
         scheduleAutoRefresh()
+    }
+
+    /// Called once at launch: if a refresh token was saved from a previous session,
+    /// silently exchanges it for a fresh session instead of forcing a login screen
+    /// every time the app is closed and reopened.
+    func restoreSession() async {
+        defer { isRestoringSession = false }
+        guard let savedRefreshToken = Keychain.load(Self.refreshTokenKey) else { return }
+        do {
+            let tokens = try await API.refresh(refreshToken: savedRefreshToken)
+            let user = try await API.profile(token: tokens.accessToken)
+            let zones = try await API.listZones(token: tokens.accessToken)
+            startSession(accessToken: tokens.accessToken, refreshToken: tokens.refreshToken, user: user)
+            zoneId = zones.first?.zoneId
+            PushNotifications.requestPermission()
+        } catch {
+            // Saved token is invalid/expired/revoked — fall through to a normal login.
+            Keychain.delete(Self.refreshTokenKey)
+        }
     }
 
     // The access token expires after 15 minutes server-side; refresh at a comfortable
@@ -227,6 +267,7 @@ final class Session: ObservableObject {
                     let result = try await API.refresh(refreshToken: refreshToken)
                     self.accessToken = result.accessToken
                     self.refreshToken = result.refreshToken
+                    Keychain.save(result.refreshToken, for: Self.refreshTokenKey)
                 } catch {
                     self.logOut()
                     return
@@ -238,9 +279,17 @@ final class Session: ObservableObject {
     func logOut() {
         refreshTask?.cancel()
         refreshTask = nil
+        let tokenToRevoke = refreshToken
         accessToken = nil
         refreshToken = nil
         user = nil
         zoneId = nil
+        Keychain.delete(Self.refreshTokenKey)
+        // Stops this device from being reachable for future pushes immediately,
+        // client-side, in addition to the server clearing push_token below.
+        UIApplication.shared.unregisterForRemoteNotifications()
+        if let tokenToRevoke {
+            Task { try? await API.logout(refreshToken: tokenToRevoke) }
+        }
     }
 }

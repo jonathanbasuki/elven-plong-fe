@@ -1,3 +1,4 @@
+import AVFoundation
 import AVKit
 import SwiftUI
 
@@ -27,7 +28,9 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if session.accessToken == nil || session.zoneId == nil {
+                if session.isRestoringSession {
+                    ProgressView()
+                } else if session.accessToken == nil || session.zoneId == nil {
                     LoginView()
                 } else if session.isManager {
                     ManagerContainer()
@@ -37,7 +40,10 @@ struct ContentView: View {
             }
             .navigationTitle("Plong")
             .toolbar(session.accessToken == nil ? .hidden : .visible, for: .navigationBar)
-            .task { AppDelegate.session = session }
+            .task {
+                AppDelegate.session = session
+                await session.restoreSession()
+            }
             .toolbar {
                 if session.accessToken != nil {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -459,7 +465,15 @@ struct CCTVPreview: View {
                     Text("CAM 01").font(.caption2.monospaced()).foregroundStyle(.white).padding()
                 }
         }
-        .onAppear { player.play() }
+        .onAppear {
+            // Muting alone isn't enough — AVPlayer still activates an audio session
+            // that, by default, stops whatever else is playing (e.g. Music/Spotify).
+            // .ambient + .mixWithOthers tells iOS this app never needs audio focus.
+            try? AVAudioSession.sharedInstance().setCategory(.ambient, options: [.mixWithOthers])
+            try? AVAudioSession.sharedInstance().setActive(true)
+            player.isMuted = true
+            player.play()
+        }
         .onDisappear { player.pause() }
     }
 }
