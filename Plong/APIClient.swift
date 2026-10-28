@@ -3,10 +3,10 @@ import Foundation
 import UIKit
 
 /// Same LAN as the RTSP camera. Update if the Mac's IP changes.
-let apiBaseURL = "http://192.168.2.1:8080"
+let apiBaseURL = "https://forgot-pamela-believe-bind.trycloudflare.com"
 
 /// MediaMTX HLS preview (see docs/SETUP_HLS.md) — same Mac, different port, no auth.
-let hlsURL = URL(string: "http://192.168.2.1:8888/cam1/index.m3u8")!
+let hlsURL = URL(string: "https://preparation-posing-amendment-carlo.trycloudflare.com/cam1/index.m3u8")!
 
 struct APIError: Error, LocalizedError {
     let code: String
