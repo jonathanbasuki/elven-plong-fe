@@ -2,11 +2,11 @@ import Combine
 import Foundation
 import UIKit
 
-/// Same LAN as the RTSP camera. Update if the Mac's IP changes.
-let apiBaseURL = "https://api.plong.my.id"
+/// Live server by default; see AppConfig to point a debug run at a local backend.
+let apiBaseURL = AppConfig.apiBaseURL
 
-/// MediaMTX HLS preview (see docs/SETUP_HLS.md) — same Mac, different port, no auth.
-let hlsURL = URL(string: "https://cctv.plong.my.id/cam1/index.m3u8")!
+/// MediaMTX HLS preview (see docs/SETUP_HLS.md in the backend repo), no auth.
+let hlsURL = AppConfig.hlsURL
 
 struct APIError: Error, LocalizedError {
     let code: String

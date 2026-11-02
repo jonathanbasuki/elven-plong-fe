@@ -51,6 +51,18 @@
             ReferencedContainer = "container:Plong.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "PLONG_API_BASE_URL"
+            value = "http://127.0.0.1:8080"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PLONG_HLS_URL"
+            value = "http://127.0.0.1:8888/cam1/index.m3u8"
+            isEnabled = "NO">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
