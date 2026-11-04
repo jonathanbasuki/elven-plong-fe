@@ -1,151 +1,151 @@
 import SwiftUI
 
+/// Login View matching sample/Manager/login.svg conforming to Apple HIG.
 public struct LoginView: View {
     @Bindable var viewModel: LoginViewModel
     @State private var isPasswordVisible: Bool = false
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case email
+        case password
+    }
     
     public init(viewModel: LoginViewModel) {
         self.viewModel = viewModel
     }
     
     public var body: some View {
-        ZStack(alignment: .bottom) {
-            Color(uiColor: .systemGroupedBackground)
+        ZStack {
+            Color(uiColor: .systemBackground)
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                Spacer(minLength: 300)
+                Spacer()
                 
-                // Bottom Login Card
+                // Centered "Login" Title
+                Text("Login")
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundStyle(Color(uiColor: .label))
+                    .padding(.bottom, 36)
+                    .accessibilityAddTraits(.isHeader)
+                
+                // Grouped Inputs Card
                 VStack(spacing: 0) {
-                    Text("Login")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(.primary)
-                        .padding(.top, 36)
-                        .padding(.bottom, 28)
+                    // Email Row
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.black)
+                                .frame(width: 38, height: 38)
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                        .accessibilityHidden(true)
+                        
+                        TextField("abcde@gmail.com", text: $viewModel.email)
+                            .focused($focusedField, equals: .email)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color(uiColor: .label))
+                            .accessibilityLabel("Email Address")
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
                     
-                    // Unified Input Fields Card
-                    VStack(spacing: 0) {
-                        // Email Row
-                        HStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.black)
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: "person.fill")
-                                    .font(.system(size: 15))
-                                    .foregroundStyle(.white)
-                            }
-                            
-                            TextField("abcde@gmail.com", text: $viewModel.email)
-                                .keyboardType(.emailAddress)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled(true)
+                    Divider()
+                        .padding(.horizontal, 16)
+                        .opacity(0.5)
+                    
+                    // Password Row
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.black)
+                                .frame(width: 38, height: 38)
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                        .accessibilityHidden(true)
+                        
+                        if isPasswordVisible {
+                            TextField("*********", text: $viewModel.password)
+                                .focused($focusedField, equals: .password)
                                 .font(.system(size: 16))
+                                .foregroundStyle(Color(uiColor: .label))
+                                .accessibilityLabel("Password")
+                        } else {
+                            SecureField("*********", text: $viewModel.password)
+                                .focused($focusedField, equals: .password)
+                                .font(.system(size: 16))
+                                .foregroundStyle(Color(uiColor: .label))
+                                .accessibilityLabel("Password")
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
                         
-                        Divider()
-                            .padding(.horizontal, 16)
-                            .opacity(0.5)
-                        
-                        // Password Row
-                        HStack(spacing: 14) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.black)
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: "lock.fill")
-                                    .font(.system(size: 15))
-                                    .foregroundStyle(.white)
-                            }
-                            
-                            if isPasswordVisible {
-                                TextField("*********", text: $viewModel.password)
-                                    .font(.system(size: 16))
-                            } else {
-                                SecureField("*********", text: $viewModel.password)
-                                    .font(.system(size: 16))
-                            }
-                            
-                            Button {
-                                isPasswordVisible.toggle()
-                            } label: {
-                                Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(Color(uiColor: .systemGray2))
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                    }
-                    .background(Color(uiColor: .systemGray6))
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    .padding(.horizontal, 24)
-                    
-                    // Validation Error Banner (if any)
-                    if let error = viewModel.emailError ?? viewModel.passwordError ?? viewModel.generalError {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .font(.caption2)
-                            Text(error)
-                                .font(.caption)
-                        }
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 28)
-                        .padding(.top, 8)
-                    }
-                    
-                    // Forgot Password Link
-                    HStack {
-                        Spacer()
                         Button {
-                            // Forgot password action
+                            let impact = UIImpactFeedbackGenerator(style: .light)
+                            impact.impactOccurred()
+                            isPasswordVisible.toggle()
                         } label: {
-                            Text("Forgot Password ?")
-                                .font(.system(size: 13, weight: .regular))
-                                .underline()
-                                .foregroundStyle(Color(uiColor: .systemGray))
+                            Image(systemName: isPasswordVisible ? "eye.slash" : "eye")
+                                .font(.system(size: 16))
+                                .foregroundStyle(Color(uiColor: .systemGray2))
+                                .frame(width: 44, height: 44) // HIG hit target
+                                .contentShape(Rectangle())
                         }
+                        .accessibilityLabel(isPasswordVisible ? "Hide password" : "Show password")
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 14)
-                    
-                    Spacer(minLength: 44)
-                    
-                    // Blue Capsule Login Button
-                    Button {
-                        viewModel.signIn()
-                    } label: {
-                        HStack {
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Text("Login")
-                                    .font(.system(size: 17, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Color(red: 0.0, green: 0.46, blue: 0.92))
-                        .clipShape(Capsule())
-                    }
-                    .disabled(viewModel.isLoading)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 32)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
                 }
-                .background(
-                    Color(uiColor: .systemBackground)
-                        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 36, topTrailingRadius: 36, style: .continuous))
-                        .shadow(color: Color.black.opacity(0.04), radius: 10, y: -4)
-                        .ignoresSafeArea(edges: .bottom)
-                )
+                .background(Color(uiColor: .systemGray6))
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .padding(.horizontal, 24)
+                
+                // Error feedback if any
+                if let error = viewModel.emailError ?? viewModel.passwordError ?? viewModel.generalError {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.caption2)
+                        Text(error)
+                            .font(.caption)
+                    }
+                    .foregroundStyle(Color(uiColor: .systemRed))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 28)
+                    .padding(.top, 8)
+                }
+                
+                Spacer()
+                
+                // Bottom Primary Login Button
+                PrimaryPillButton(
+                    title: "Login",
+                    isEnabled: !viewModel.isLoading,
+                    isLoading: viewModel.isLoading
+                ) {
+                    dismissKeyboard()
+                    let impact = UIImpactFeedbackGenerator(style: .medium)
+                    impact.impactOccurred()
+                    viewModel.signIn()
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 28)
             }
         }
+        // Dismiss keyboard on tap outside input fields
+        .onTapGesture {
+            dismissKeyboard()
+        }
+    }
+    
+    private func dismissKeyboard() {
+        focusedField = nil
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 }
 

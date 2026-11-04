@@ -9,8 +9,12 @@ public enum ZoneStatus: String, Codable, CaseIterable, Sendable {
         switch self {
         case .safe: return "Safe"
         case .warning: return "Warning"
-        case .crowded: return "Crowded"
+        case .crowded: return "Overflowed"
         }
+    }
+    
+    public var isOverflowed: Bool {
+        self == .crowded
     }
 }
 

@@ -37,10 +37,16 @@ final class LoginAndNavigationTests: XCTestCase {
         XCTAssertFalse(router.isAuthenticated)
         XCTAssertTrue(router.path.isEmpty)
         
-        router.navigate(to: .zoneDetail(zoneID: MockDataConstants.zoneAId))
+        router.navigate(to: .taskLog)
         XCTAssertEqual(router.path.count, 1)
         
-        router.navigate(to: .broadcast(zoneID: MockDataConstants.zoneAId))
+        let sampleItem = TaskLogItem(
+            title: "Overflow in Pantry",
+            dateString: "3 October 2026",
+            timeString: "14:05",
+            status: .ongoing
+        )
+        router.navigate(to: .taskDetail(item: sampleItem))
         XCTAssertEqual(router.path.count, 2)
         
         router.pop()
@@ -48,5 +54,37 @@ final class LoginAndNavigationTests: XCTestCase {
         
         router.popToRoot()
         XCTAssertTrue(router.path.isEmpty)
+    }
+    
+    func test_navigationRouter_taskLogRoute() {
+        let router = NavigationRouter()
+        router.navigate(to: .taskLog)
+        XCTAssertEqual(router.path.count, 1)
+        
+        router.pop()
+        XCTAssertTrue(router.path.isEmpty)
+    }
+    
+    func test_taskLogViewModel_filteringAndLogItems() {
+        let repo = MockCrowdFlowRepository()
+        let router = NavigationRouter()
+        let vm = TaskLogViewModel(repository: repo, router: router)
+        
+        // Initial items match sample/Manager/Task log.svg
+        XCTAssertGreaterThanOrEqual(vm.taskLogs.count, 4)
+        XCTAssertTrue(vm.taskLogs.contains(where: { $0.title == "Overflow in Pantry" && $0.status == .ongoing }))
+        XCTAssertTrue(vm.taskLogs.contains(where: { $0.title == "Overflow in Lab 2" && $0.status == .done }))
+        
+        // Filter ongoing
+        vm.selectedStatusFilter = .ongoing
+        XCTAssertTrue(vm.taskLogs.allSatisfy { $0.status == .ongoing })
+        
+        // Filter history (done)
+        vm.selectedStatusFilter = .history
+        XCTAssertTrue(vm.taskLogs.allSatisfy { $0.status == .done })
+        
+        // Filter all
+        vm.selectedStatusFilter = .all
+        XCTAssertEqual(vm.taskLogs.count, 4)
     }
 }

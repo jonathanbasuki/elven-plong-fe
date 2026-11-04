@@ -29,72 +29,39 @@ public struct CrowdFlowRootView: View {
                 LoginView(viewModel: LoginViewModel(router: router))
             } else {
                 NavigationStack(path: $router.path) {
-                    CrowdMapView(viewModel: CrowdMapViewModel(repository: repository, router: router))
-                        .navigationDestination(for: AppRoute.self) { route in
-                            destinationView(for: route)
-                        }
+                    ManagerHomeView(
+                        repository: repository,
+                        coordinator: coordinator,
+                        router: router
+                    )
+                    .navigationDestination(for: AppRoute.self) { route in
+                        destinationView(for: route)
+                    }
                 }
             }
         }
+        .preferredColorScheme(.light)
     }
     
     @ViewBuilder
     private func destinationView(for route: AppRoute) -> some View {
         switch route {
-        case .crowdMap:
-            CrowdMapView(
-                viewModel: CrowdMapViewModel(
-                    repository: repository,
-                    router: router
-                )
+        case .crowdMap, .taskLog:
+            ManagerHomeView(
+                repository: repository,
+                coordinator: coordinator,
+                router: router
             )
             
-        case .zoneDetail(let zoneID):
-            ZoneDetailView(
-                viewModel: ZoneDetailViewModel(
-                    zoneID: zoneID,
-                    repository: repository,
-                    coordinator: coordinator,
-                    router: router
-                )
-            )
-            
-        case .createBroadcast(let zoneID):
-            CreateBroadcastView(
-                viewModel: CreateBroadcastViewModel(
-                    zoneID: zoneID,
-                    repository: repository,
-                    coordinator: coordinator,
-                    router: router
-                )
-            )
-            
-        case .broadcast(let zoneID):
-            BroadcastView(
-                viewModel: BroadcastViewModel(
-                    zoneID: zoneID,
-                    repository: repository,
-                    coordinator: coordinator,
-                    router: router
-                )
-            )
-            
-        case .assignmentStatus(let requestID):
-            AssignmentStatusView(
-                viewModel: AssignmentStatusViewModel(
-                    requestID: requestID,
-                    repository: repository,
-                    router: router
-                )
-            )
-            
-        case .alerts:
-            AlertsView(
-                viewModel: AlertsViewModel(
-                    repository: repository,
-                    router: router
-                )
+        case .taskDetail(let item):
+            TaskDetailView(
+                task: item,
+                router: router
             )
         }
     }
+}
+
+#Preview {
+    CrowdFlowRootView()
 }

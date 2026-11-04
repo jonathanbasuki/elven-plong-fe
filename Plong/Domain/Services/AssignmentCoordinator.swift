@@ -64,10 +64,14 @@ public final class AssignmentCoordinator {
     
     public init(
         repository: CrowdFlowRepositoryProtocol,
-        clock: ClockProtocol = SystemClock()
+        clock: ClockProtocol
     ) {
         self.repository = repository
         self.clock = clock
+    }
+    
+    public convenience init(repository: CrowdFlowRepositoryProtocol) {
+        self.init(repository: repository, clock: SystemClock())
     }
     
     // MARK: - Broadcast Actions

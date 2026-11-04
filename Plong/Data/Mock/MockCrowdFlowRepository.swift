@@ -37,9 +37,13 @@ public final class MockCrowdFlowRepository: CrowdFlowRepositoryProtocol {
     public var confirmedAssignments: [ConfirmedAssignment] = []
     public var clock: ClockProtocol
     
-    public init(clock: ClockProtocol = SystemClock()) {
+    public init(clock: ClockProtocol) {
         self.clock = clock
         resetToDefaults()
+    }
+    
+    public convenience init() {
+        self.init(clock: SystemClock())
     }
     
     public func resetToDefaults() {
@@ -89,7 +93,13 @@ public final class MockCrowdFlowRepository: CrowdFlowRepositoryProtocol {
             mockDistancesToZones: [MockDataConstants.zone1Id: 40.0, MockDataConstants.zone2Id: 32.0]
         )
         
-        self.staffMembers = [
+        let additionalNames = [
+            "Farhan", "Gita", "Hadi", "Intan", "Joko",
+            "Kevin", "Lina", "Maya", "Niko", "Putri",
+            "Rizky", "Siti", "Taufik"
+        ]
+        
+        var allStaff = [
             initialStaff1,
             initialStaff2,
             initialStaff3,
@@ -97,15 +107,33 @@ public final class MockCrowdFlowRepository: CrowdFlowRepositoryProtocol {
             initialStaff5
         ]
         
-        // Zones seed: z1 matches seed.sql exactly (currentCount = 7, warning = 5, crowded = 10)
+        for (index, name) in additionalNames.enumerated() {
+            let staff = SecurityStaff(
+                id: UUID(uuidString: String(format: "a1111111-0000-0000-0000-%012d", index + 6))!,
+                name: name,
+                status: index < 2 ? .idle : .delegating,
+                pushToken: "apns-token-\(name.lowercased())",
+                currentZoneID: MockDataConstants.zone1Id,
+                mockDistancesToZones: [MockDataConstants.zone1Id: Double(index * 5)]
+            )
+            allStaff.append(staff)
+        }
+        
+        self.staffMembers = allStaff
+        
+        // Zones seed: Matches sample/overview.svg and modal detail zone.svg
+        // Zone 1: Pantry Academy (50 occupants, Overflowed)
+        // Zone 2: Collab Area (20 occupants)
+        // Zone 3: Meeting & Pods (10 occupants)
+        // Total Crowd: 80 occupants | Active Staff: 18
         self.zones = [
             VenueZone(
                 id: MockDataConstants.zone1Id,
-                name: "Main Lobby",
-                currentCount: 7, // Warning threshold = 5, crowded = 10 -> status: warning
-                warningThreshold: 5,
-                crowdedThreshold: 10,
-                mapImageUrl: "https://example.com/media/maps/main-lobby.png",
+                name: "Pantry Academy",
+                currentCount: 50, // Warning threshold = 20, crowded = 35 -> status: crowded ("Overflowed")
+                warningThreshold: 20,
+                crowdedThreshold: 35,
+                mapImageUrl: "denah",
                 polygon: [
                     [0.1677, 0.5065],
                     [0.4682, 0.437],
@@ -113,15 +141,15 @@ public final class MockCrowdFlowRepository: CrowdFlowRepositoryProtocol {
                     [0.9958, 0.9435],
                     [0.1682, 0.512]
                 ],
-                assignedStaffIDs: []
+                assignedStaffIDs: [MockDataConstants.staffAldiId, MockDataConstants.staffBungaId]
             ),
             VenueZone(
                 id: MockDataConstants.zone2Id,
-                name: "West Plaza",
-                currentCount: 12, // Crowded
-                warningThreshold: 6,
-                crowdedThreshold: 10,
-                mapImageUrl: "https://example.com/media/maps/west-plaza.png",
+                name: "Collab Area",
+                currentCount: 20,
+                warningThreshold: 15,
+                crowdedThreshold: 30,
+                mapImageUrl: "denah",
                 polygon: [
                     [0.2, 0.2],
                     [0.8, 0.2],
@@ -132,31 +160,16 @@ public final class MockCrowdFlowRepository: CrowdFlowRepositoryProtocol {
             ),
             VenueZone(
                 id: MockDataConstants.zone3Id,
-                name: "North Gallery",
-                currentCount: 4, // Safe (< 6)
-                warningThreshold: 6,
-                crowdedThreshold: 12,
-                mapImageUrl: "https://example.com/media/maps/north-gallery.png",
+                name: "Meeting & Pods",
+                currentCount: 10,
+                warningThreshold: 10,
+                crowdedThreshold: 25,
+                mapImageUrl: "denah",
                 polygon: [
                     [0.1, 0.1],
                     [0.9, 0.1],
                     [0.9, 0.5],
                     [0.1, 0.5]
-                ],
-                assignedStaffIDs: []
-            ),
-            VenueZone(
-                id: MockDataConstants.zone4Id,
-                name: "South Pavilion",
-                currentCount: 2, // Safe
-                warningThreshold: 8,
-                crowdedThreshold: 15,
-                mapImageUrl: "https://example.com/media/maps/south-pavilion.png",
-                polygon: [
-                    [0.1, 0.5],
-                    [0.9, 0.5],
-                    [0.9, 0.9],
-                    [0.1, 0.9]
                 ],
                 assignedStaffIDs: []
             )

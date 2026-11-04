@@ -5,14 +5,14 @@ public protocol ClockProtocol: Sendable {
     func sleep(seconds: TimeInterval) async throws
 }
 
-public struct SystemClock: ClockProtocol {
-    public init() {}
+public struct SystemClock: ClockProtocol, Sendable {
+    public nonisolated init() {}
     
-    public var now: Date {
+    public nonisolated var now: Date {
         Date()
     }
     
-    public func sleep(seconds: TimeInterval) async throws {
+    public nonisolated func sleep(seconds: TimeInterval) async throws {
         let nanoseconds = UInt64(max(0, seconds) * 1_000_000_000)
         try await Task.sleep(nanoseconds: nanoseconds)
     }
