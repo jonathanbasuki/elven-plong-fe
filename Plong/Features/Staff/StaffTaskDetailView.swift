@@ -50,7 +50,12 @@ public struct StaffTaskDetailView: View {
                     )
                     
                     // 2. Task Instruction & Location Card
-                    TaskInstructionCard(task: task)
+                    TaskInstructionCard(
+                        instruction: task.instruction,
+                        locationName: task.locationName
+                    ) {
+                        miniMapCard
+                    }
                     
                     Spacer(minLength: 24)
                 }
@@ -71,6 +76,35 @@ public struct StaffTaskDetailView: View {
         .background(Color(uiColor: .systemBackground))
         .navigationBarHidden(true)
         .animation(.easeInOut(duration: 0.25), value: isCompleted)
+    }
+    
+    // MARK: - Floor Plan Mini Map Preview
+    private var miniMapCard: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(uiColor: .systemGray6))
+            
+            Image("denah")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .padding(12)
+                .opacity(0.85)
+            
+            VStack(spacing: 2) {
+                Image(systemName: "mappin")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Color(red: 0.05, green: 0.49, blue: 0.95))
+                    .shadow(radius: 2)
+                
+                Text(task.locationName)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Color.black)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.white.opacity(0.9))
+                    .clipShape(Capsule())
+            }
+        }
     }
     
     // MARK: - Actions

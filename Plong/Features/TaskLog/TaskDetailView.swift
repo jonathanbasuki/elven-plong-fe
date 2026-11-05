@@ -72,29 +72,10 @@ public struct TaskDetailView: View {
     
     // MARK: - Header Task Card
     private var taskHeaderCard: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(task.title)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color(uiColor: .label))
-                
-                Text(task.formattedDateTime)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-            }
-            
-            Spacer()
-            
-            StatusPillBadge(style: task.status == .ongoing ? .ongoing : .done)
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity)
-        .background(Color(uiColor: .systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+        TaskCard(
+            title: task.title,
+            timestamp: task.formattedDateTime,
+            statusStyle: task.status == .ongoing ? .ongoing : .done
         )
     }
     
