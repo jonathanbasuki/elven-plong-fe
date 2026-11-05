@@ -116,43 +116,8 @@ public struct CrowdMapView: View {
     // MARK: - Summary Metric Cards
     private var summaryMetricCards: some View {
         HStack(spacing: 12) {
-            // Active Staff Card
-            VStack(spacing: 4) {
-                Text("Active Staff")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-                
-                Text("\(viewModel.activeStaffCount)")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(Color(uiColor: .label))
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 72)
-            .background(Color(uiColor: .systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 19.5, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 19.5, style: .continuous)
-                    .stroke(Color.primary.opacity(0.18), lineWidth: 1)
-            )
-            
-            // Total Crowd Card
-            VStack(spacing: 4) {
-                Text("Total Crowd")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-                
-                Text("\(viewModel.totalCrowd)")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(Color(uiColor: .label))
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 72)
-            .background(Color(uiColor: .systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 19.5, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 19.5, style: .continuous)
-                    .stroke(Color.primary.opacity(0.18), lineWidth: 1)
-            )
+            StatusMetricCard(title: "Active Staff", value: "\(viewModel.activeStaffCount)")
+            StatusMetricCard(title: "Total Crowd", value: "\(viewModel.totalCrowd)")
         }
         .padding(.horizontal, 20)
     }

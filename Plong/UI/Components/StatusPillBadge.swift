@@ -1,6 +1,6 @@
 import SwiftUI
 
-public enum StatusBadgeStyle {
+public enum StatusBadgeStyle: Equatable {
     case ongoing
     case done
     case accepted

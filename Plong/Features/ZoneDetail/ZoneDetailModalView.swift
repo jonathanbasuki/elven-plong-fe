@@ -125,29 +125,7 @@ public struct ZoneDetailModalView: View {
                     )
                     
                     // Status and Crowd Count Row
-                    HStack(spacing: 0) {
-                        VStack(spacing: 4) {
-                            Text("Status")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(Color(uiColor: .secondaryLabel))
-                            
-                            Text("Overflow")
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundStyle(Color(red: 0.85, green: 0.20, blue: 0.20))
-                        }
-                        .frame(maxWidth: .infinity)
-                        
-                        VStack(spacing: 4) {
-                            Text("Crowd Count")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(Color(uiColor: .secondaryLabel))
-                            
-                            Text("\(zone.currentCount)")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundStyle(Color(uiColor: .label))
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
+                    StatusMetricsRow(crowdCount: zone.currentCount)
                     
                     // CCTV Live Snapshot
                     Image("cctv_snapshot")
@@ -178,17 +156,17 @@ public struct ZoneDetailModalView: View {
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Color(uiColor: .secondaryLabel))
                         
-                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
+                        StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
                         Divider().opacity(0.4)
-                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
+                        StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
                         Divider().opacity(0.4)
-                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+                        StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
                         Divider().opacity(0.4)
-                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+                        StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
                         Divider().opacity(0.4)
-                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+                        StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
                         Divider().opacity(0.4)
-                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+                        StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, 24)
@@ -236,29 +214,7 @@ public struct ZoneDetailModalView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Status and Crowd Count Row
-                    HStack(spacing: 0) {
-                        VStack(spacing: 4) {
-                            Text("Status")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(Color(uiColor: .secondaryLabel))
-                            
-                            Text("Overflow")
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundStyle(Color(red: 0.85, green: 0.20, blue: 0.20))
-                        }
-                        .frame(maxWidth: .infinity)
-                        
-                        VStack(spacing: 4) {
-                            Text("Crowd Count")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(Color(uiColor: .secondaryLabel))
-                            
-                            Text("\(zone.currentCount)")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundStyle(Color(uiColor: .label))
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
+                    StatusMetricsRow(crowdCount: zone.currentCount)
                     .padding(.top, 4)
                     
                     // CCTV Live Snapshot
@@ -278,9 +234,9 @@ public struct ZoneDetailModalView: View {
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(Color(uiColor: .secondaryLabel))
                         
-                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Onsite • Pantry")
+                        StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Onsite • Pantry")
                         Divider().opacity(0.4)
-                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Onsite • Pantry")
+                        StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Onsite • Pantry")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
@@ -464,34 +420,6 @@ public struct ZoneDetailModalView: View {
             .padding(.bottom, 28)
         }
         .frame(minHeight: 380)
-    }
-    
-    // MARK: - Helper Staff Row (Uses user_profile image)
-    private func staffRow(name: String, role: String, statusText: String) -> some View {
-        HStack(spacing: 14) {
-            Image("user_profile")
-                .resizable()
-                .scaledToFill()
-                .frame(width: 48, height: 48)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.primary.opacity(0.1), lineWidth: 1))
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color(uiColor: .label))
-                
-                Text(role)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-            }
-            
-            Spacer()
-            
-            Text(statusText)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(Color(uiColor: .secondaryLabel))
-        }
     }
     
     // MARK: - Actions & Timer

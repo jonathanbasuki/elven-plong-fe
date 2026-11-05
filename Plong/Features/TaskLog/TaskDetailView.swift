@@ -83,30 +83,8 @@ public struct TaskDetailView: View {
     @ViewBuilder
     private var ongoingContent: some View {
         // Status and Crowd Count Row
-        HStack(spacing: 0) {
-            VStack(spacing: 4) {
-                Text("Status")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-                
-                Text("Overflow")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Color(red: 0.85, green: 0.20, blue: 0.20))
-            }
-            .frame(maxWidth: .infinity)
-            
-            VStack(spacing: 4) {
-                Text("Crowd Count")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-                
-                Text("50")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Color(uiColor: .label))
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .padding(.vertical, 4)
+        StatusMetricsRow(crowdCount: 50)
+            .padding(.vertical, 4)
         
         // CCTV Snapshot
         Image("cctv_snapshot")
@@ -138,17 +116,17 @@ public struct TaskDetailView: View {
                 .foregroundStyle(Color(uiColor: .secondaryLabel))
                 .padding(.top, 4)
             
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
             Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
             Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
             Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
             Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
             Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -247,76 +225,15 @@ public struct TaskDetailView: View {
                 .foregroundStyle(Color(uiColor: .secondaryLabel))
                 .padding(.top, 4)
             
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "")
             Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "")
             Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "")
             Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "")
+            StaffRowView(name: "Rendi Septrian", role: "Security", statusText: "")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    
-    // MARK: - Row Helpers
-    private func staffDetailRow(name: String, role: String, statusLine1: String, statusLine2: String) -> some View {
-        HStack(spacing: 14) {
-            Image("user_profile")
-                .resizable()
-                .scaledToFill()
-                .frame(width: 48, height: 48)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.primary.opacity(0.1), lineWidth: 1))
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color(uiColor: .label))
-                
-                Text(role)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(statusLine1)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-                
-                Text(statusLine2)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-            }
-        }
-    }
-    
-    private func staffSimpleRow(name: String, role: String, statusText: String) -> some View {
-        HStack(spacing: 14) {
-            Image("user_profile")
-                .resizable()
-                .scaledToFill()
-                .frame(width: 48, height: 48)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(Color.primary.opacity(0.1), lineWidth: 1))
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color(uiColor: .label))
-                
-                Text(role)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-            }
-            
-            Spacer()
-            
-            Text(statusText)
-                .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(Color(uiColor: .secondaryLabel))
-        }
     }
 }
 
