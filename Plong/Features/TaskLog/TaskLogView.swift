@@ -22,11 +22,11 @@ public struct TaskLogView: View {
                     .padding(.bottom, 12)
                 }
                 
-                // Subheader with "Task" and Sort/Status Menu
-                subHeader
+                // Segmented Capsule [ Ongoing | History ] matching tasklog1.svg & tasklog2.svg
+                segmentedControl
                     .padding(.horizontal, 20)
                     .padding(.top, showChrome ? 0 : 8)
-                    .padding(.bottom, 14)
+                    .padding(.bottom, 16)
                 
                 // Tasks List
                 ScrollView(showsIndicators: false) {
@@ -53,69 +53,41 @@ public struct TaskLogView: View {
         .navigationBarHidden(true)
     }
     
-    // MARK: - Subheader with Multi-Section Sort/Status Menu
-    private var subHeader: some View {
-        HStack {
-            Text("Task")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundStyle(Color(uiColor: .label))
-            
-            Spacer()
-            
-            // Menu matching sample/sort status.svg
-            Menu {
-                Section("Sort") {
-                    Button {
-                        viewModel.selectedSort = .latest
-                    } label: {
-                        if viewModel.selectedSort == .latest {
-                            Label("Latest", systemImage: "checkmark")
-                        } else {
-                            Text("Latest")
-                        }
-                    }
-                    
-                    Button {
-                        viewModel.selectedSort = .oldest
-                    } label: {
-                        if viewModel.selectedSort == .oldest {
-                            Label("Oldest", systemImage: "checkmark")
-                        } else {
-                            Text("Oldest")
-                        }
-                    }
-                }
-                
-                Section("Status") {
-                    Button {
-                        viewModel.selectedStatusFilter = (viewModel.selectedStatusFilter == .ongoing) ? .all : .ongoing
-                    } label: {
-                        if viewModel.selectedStatusFilter == .ongoing {
-                            Label("Ongoing", systemImage: "checkmark")
-                        } else {
-                            Text("Ongoing")
-                        }
-                    }
-                    
-                    Button {
-                        viewModel.selectedStatusFilter = (viewModel.selectedStatusFilter == .history) ? .all : .history
-                    } label: {
-                        if viewModel.selectedStatusFilter == .history {
-                            Label("History", systemImage: "checkmark")
-                        } else {
-                            Text("History")
-                        }
-                    }
-                }
-            } label: {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color(uiColor: .label))
-                    .frame(width: 44, height: 44) // HIG hit target
-                    .contentShape(Rectangle())
+    // MARK: - Segmented Capsule [ Ongoing | History ]
+    private var segmentedControl: some View {
+        HStack(spacing: 0) {
+            segmentButton(title: "Ongoing", isSelected: viewModel.selectedSegment == .ongoing) {
+                viewModel.selectedSegment = .ongoing
             }
-            .accessibilityLabel("Sort and Filter Tasks")
+            
+            segmentButton(title: "History", isSelected: viewModel.selectedSegment == .history) {
+                viewModel.selectedSegment = .history
+            }
         }
+        .padding(3)
+        .background(Color(uiColor: .systemGray6))
+        .clipShape(Capsule())
+    }
+    
+    private func segmentButton(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                action()
+            }
+        } label: {
+            Text(title)
+                .font(.system(size: 14, weight: isSelected ? .bold : .medium))
+                .foregroundStyle(isSelected ? Color(uiColor: .label) : Color(uiColor: .secondaryLabel))
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(isSelected ? Color(uiColor: .systemBackground) : Color.clear)
+                .clipShape(Capsule())
+                .shadow(color: isSelected ? Color.black.opacity(0.08) : Color.clear, radius: 2, y: 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title) tasks")
     }
     
     // MARK: - Task Card matching sample/Manager/Task log.svg

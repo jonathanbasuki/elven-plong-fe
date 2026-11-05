@@ -7,7 +7,9 @@ final class LoginAndNavigationTests: XCTestCase {
         let router = NavigationRouter()
         let vm = LoginViewModel(router: router)
         
-        // Empty
+        // Reset to empty
+        vm.email = ""
+        vm.password = ""
         XCTAssertFalse(vm.validate())
         XCTAssertNotNil(vm.emailError)
         XCTAssertNotNil(vm.passwordError)
@@ -30,6 +32,40 @@ final class LoginAndNavigationTests: XCTestCase {
         XCTAssertTrue(vm.validate())
         XCTAssertNil(vm.emailError)
         XCTAssertNil(vm.passwordError)
+    }
+    
+    func test_loginRoleSelection_managerAndStaff() async {
+        let router = NavigationRouter()
+        let vm = LoginViewModel(router: router)
+        
+        // Sign in with Staff email
+        vm.email = "staff@venue.com"
+        vm.password = "password123"
+        vm.signIn()
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        XCTAssertTrue(router.isAuthenticated)
+        XCTAssertEqual(router.currentUserRole, .staff)
+        
+        // Logout
+        router.logout()
+        XCTAssertFalse(router.isAuthenticated)
+        
+        // Sign in with Manager email
+        vm.email = "manager@venue.com"
+        vm.password = "password123"
+        vm.signIn()
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        XCTAssertTrue(router.isAuthenticated)
+        XCTAssertEqual(router.currentUserRole, .manager)
+        
+        // Sign in with standard email (defaults to manager experience)
+        router.logout()
+        vm.email = "abcde@gmail.com"
+        vm.password = "password123"
+        vm.signIn()
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        XCTAssertTrue(router.isAuthenticated)
+        XCTAssertEqual(router.currentUserRole, .manager)
     }
     
     func test_navigationRouter_stateTransitions() {
@@ -56,35 +92,37 @@ final class LoginAndNavigationTests: XCTestCase {
         XCTAssertTrue(router.path.isEmpty)
     }
     
-    func test_navigationRouter_taskLogRoute() {
+    func test_navigationRouter_staffTaskDetailRoute() {
         let router = NavigationRouter()
-        router.navigate(to: .taskLog)
+        let sampleItem = TaskLogItem(
+            title: "Overflow in Pantry",
+            dateString: "3 October 2026",
+            timeString: "14:05",
+            status: .ongoing
+        )
+        router.navigate(to: .staffTaskDetail(item: sampleItem))
         XCTAssertEqual(router.path.count, 1)
         
         router.pop()
         XCTAssertTrue(router.path.isEmpty)
     }
     
-    func test_taskLogViewModel_filteringAndLogItems() {
+    func test_taskLogViewModel_segmentedOngoingAndHistory() {
         let repo = MockCrowdFlowRepository()
         let router = NavigationRouter()
         let vm = TaskLogViewModel(repository: repo, router: router)
         
-        // Initial items match sample/Manager/Task log.svg
-        XCTAssertGreaterThanOrEqual(vm.taskLogs.count, 4)
-        XCTAssertTrue(vm.taskLogs.contains(where: { $0.title == "Overflow in Pantry" && $0.status == .ongoing }))
-        XCTAssertTrue(vm.taskLogs.contains(where: { $0.title == "Overflow in Lab 2" && $0.status == .done }))
-        
-        // Filter ongoing
-        vm.selectedStatusFilter = .ongoing
+        // Default is ongoing
+        XCTAssertEqual(vm.selectedSegment, .ongoing)
         XCTAssertTrue(vm.taskLogs.allSatisfy { $0.status == .ongoing })
+        XCTAssertTrue(vm.taskLogs.contains(where: { $0.title == "Overflow in Pantry" }))
+        XCTAssertTrue(vm.taskLogs.contains(where: { $0.title == "Overflow in Lab 2" }))
         
-        // Filter history (done)
-        vm.selectedStatusFilter = .history
+        // Switch to History
+        vm.selectedSegment = .history
         XCTAssertTrue(vm.taskLogs.allSatisfy { $0.status == .done })
-        
-        // Filter all
-        vm.selectedStatusFilter = .all
-        XCTAssertEqual(vm.taskLogs.count, 4)
+        XCTAssertTrue(vm.taskLogs.contains(where: { $0.title == "Overflow in Pantry" }))
+        XCTAssertTrue(vm.taskLogs.contains(where: { $0.title == "Overflow in Lab 2" }))
+        XCTAssertTrue(vm.taskLogs.contains(where: { $0.title == "Overflow in Lab 1" }))
     }
 }

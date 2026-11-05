@@ -29,11 +29,21 @@ public struct CrowdFlowRootView: View {
                 LoginView(viewModel: LoginViewModel(router: router))
             } else {
                 NavigationStack(path: $router.path) {
-                    ManagerHomeView(
-                        repository: repository,
-                        coordinator: coordinator,
-                        router: router
-                    )
+                    Group {
+                        if router.currentUserRole == .manager {
+                            ManagerHomeView(
+                                repository: repository,
+                                coordinator: coordinator,
+                                router: router
+                            )
+                        } else {
+                            StaffHomeView(
+                                repository: repository,
+                                coordinator: coordinator,
+                                router: router
+                            )
+                        }
+                    }
                     .navigationDestination(for: AppRoute.self) { route in
                         destinationView(for: route)
                     }
@@ -47,16 +57,32 @@ public struct CrowdFlowRootView: View {
     private func destinationView(for route: AppRoute) -> some View {
         switch route {
         case .crowdMap, .taskLog:
-            ManagerHomeView(
-                repository: repository,
-                coordinator: coordinator,
-                router: router
-            )
+            if router.currentUserRole == .manager {
+                ManagerHomeView(
+                    repository: repository,
+                    coordinator: coordinator,
+                    router: router
+                )
+            } else {
+                StaffHomeView(
+                    repository: repository,
+                    coordinator: coordinator,
+                    router: router
+                )
+            }
             
         case .taskDetail(let item):
             TaskDetailView(
                 task: item,
                 router: router
+            )
+            
+        case .staffTaskDetail(let item):
+            StaffTaskDetailView(
+                task: item,
+                router: router,
+                coordinator: coordinator,
+                repository: repository
             )
         }
     }

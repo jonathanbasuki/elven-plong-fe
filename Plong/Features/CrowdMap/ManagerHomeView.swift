@@ -62,9 +62,9 @@ public struct ManagerHomeView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .animation(.easeInOut(duration: 0.2), value: selectedTab)
                 
-                // 3. Persistent Floating Tab Bar
+                // 3. Persistent Floating Tab Bar with Apple-inspired Liquid Glass & Smooth Motion
                 FloatingTabBar(activeTab: selectedTab) { newTab in
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                         selectedTab = newTab
                     }
                 }

@@ -3,6 +3,7 @@ import SwiftUI
 public enum StatusBadgeStyle {
     case ongoing
     case done
+    case accepted
     case role(String)
     case overflowed
     case custom(title: String, textColor: Color, backgroundColor: Color)
@@ -35,6 +36,7 @@ public struct StatusPillBadge: View {
         switch style {
         case .ongoing: return "Ongoing"
         case .done: return "Done"
+        case .accepted: return "Accepted"
         case .role(let text): return text
         case .overflowed: return "Overflowed"
         case .custom(let title, _, _): return title
@@ -43,7 +45,7 @@ public struct StatusPillBadge: View {
     
     private var textColor: Color {
         switch style {
-        case .ongoing: return PlongTheme.Colors.ongoingBlue
+        case .ongoing, .accepted: return PlongTheme.Colors.ongoingBlue
         case .done: return PlongTheme.Colors.doneGreen
         case .role: return Color.black
         case .overflowed: return PlongTheme.Colors.overflowRed
@@ -53,7 +55,7 @@ public struct StatusPillBadge: View {
     
     private var backgroundColor: Color {
         switch style {
-        case .ongoing: return PlongTheme.Colors.ongoingBackground
+        case .ongoing, .accepted: return PlongTheme.Colors.ongoingBackground
         case .done: return PlongTheme.Colors.doneBackground
         case .role: return Color.white
         case .overflowed: return PlongTheme.Colors.overflowRed.opacity(0.12)

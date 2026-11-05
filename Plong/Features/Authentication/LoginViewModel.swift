@@ -4,8 +4,8 @@ import Observation
 @Observable
 @MainActor
 public final class LoginViewModel {
-    public var email: String = ""
-    public var password: String = ""
+    public var email: String = "manager@venue.com"
+    public var password: String = "••••••••"
     public var emailError: String? = nil
     public var passwordError: String? = nil
     public var isLoading: Bool = false
@@ -48,11 +48,20 @@ public final class LoginViewModel {
         
         isLoading = true
         
+        // Determine user experience directly from account email
+        let lowerEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let role: UserRole
+        if lowerEmail.contains("staff") {
+            role = .staff
+        } else {
+            role = .manager
+        }
+        
         // Simulate brief loading state asynchronously
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s brief simulation
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s brief simulation
             self.isLoading = false
-            self.router.isAuthenticated = true
+            self.router.login(as: role)
         }
     }
 }

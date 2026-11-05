@@ -11,6 +11,7 @@ public enum ZoneModalStep: Equatable {
 /// Conforms to Apple HIG: clean native presentation, no redundant grabbers, and easy keyboard dismissal.
 public struct ZoneDetailModalView: View {
     public let zone: VenueZone
+    public var isOngoingDelegation: Bool = false
     public let availableStaffCount: Int
     public let onDismiss: () -> Void
     public let onConfirmDelegation: (VenueZone, Int, String) -> Void
@@ -25,11 +26,13 @@ public struct ZoneDetailModalView: View {
     
     public init(
         zone: VenueZone,
+        isOngoingDelegation: Bool = false,
         availableStaffCount: Int = 2,
         onDismiss: @escaping () -> Void,
         onConfirmDelegation: @escaping (VenueZone, Int, String) -> Void
     ) {
         self.zone = zone
+        self.isOngoingDelegation = isOngoingDelegation
         self.availableStaffCount = availableStaffCount
         self.onDismiss = onDismiss
         self.onConfirmDelegation = onConfirmDelegation
@@ -37,13 +40,17 @@ public struct ZoneDetailModalView: View {
     
     public var body: some View {
         VStack(spacing: 0) {
-            switch step {
-            case .detail:
-                detailContentView
-            case .waiting:
-                waitingContentView
-            case .confirmed:
-                confirmedContentView
+            if isOngoingDelegation {
+                ongoingDelegationContentView
+            } else {
+                switch step {
+                case .detail:
+                    detailContentView
+                case .waiting:
+                    waitingContentView
+                case .confirmed:
+                    confirmedContentView
+                }
             }
         }
         .background(Color(uiColor: .systemBackground))
@@ -53,6 +60,141 @@ public struct ZoneDetailModalView: View {
         // Keyboard dismissal when tapping anywhere outside input
         .onTapGesture {
             dismissKeyboard()
+        }
+    }
+    
+    // MARK: - Ongoing Delegation View (modal detail delegation ongoing.svg)
+    private var ongoingDelegationContentView: some View {
+        VStack(spacing: 0) {
+            // Header Bar
+            ZStack {
+                Text(zone.name)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Color(uiColor: .label))
+                    .accessibilityAddTraits(.isHeader)
+                
+                HStack {
+                    Spacer()
+                    
+                    Button {
+                        let impact = UIImpactFeedbackGenerator(style: .light)
+                        impact.impactOccurred()
+                        onDismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color(uiColor: .label))
+                            .frame(width: 36, height: 36)
+                            .background(Color(uiColor: .secondarySystemFill))
+                            .clipShape(Circle())
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("Close modal")
+                }
+            }
+            .padding(.top, 22)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 20) {
+                    // Task Summary Card with Ongoing Badge
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Overflow in \(zone.name)")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Color(uiColor: .label))
+                            
+                            Text("14:05, 3 October 2026")
+                                .font(.system(size: 13, weight: .regular))
+                                .foregroundStyle(Color(uiColor: .secondaryLabel))
+                        }
+                        
+                        Spacer()
+                        
+                        StatusPillBadge(style: .ongoing)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(Color(uiColor: .systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                    )
+                    
+                    // Status and Crowd Count Row
+                    HStack(spacing: 0) {
+                        VStack(spacing: 4) {
+                            Text("Status")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Color(uiColor: .secondaryLabel))
+                            
+                            Text("Overflow")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundStyle(Color(red: 0.85, green: 0.20, blue: 0.20))
+                        }
+                        .frame(maxWidth: .infinity)
+                        
+                        VStack(spacing: 4) {
+                            Text("Crowd Count")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(Color(uiColor: .secondaryLabel))
+                            
+                            Text("\(zone.currentCount)")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundStyle(Color(uiColor: .label))
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    
+                    // CCTV Live Snapshot
+                    Image("cctv_snapshot")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                        )
+                    
+                    // Task Instruction
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Task Instruction :")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color(uiColor: .label))
+                        
+                        Text("Pastikan passenger tertib tidak ada maling barang-barang semua aman tidak anak anak nangis dan semua enjoy dalam perjalanan.")
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundStyle(Color(uiColor: .secondaryLabel))
+                            .lineSpacing(3)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    // Assigned Staff Section
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Assigned Staff")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color(uiColor: .secondaryLabel))
+                        
+                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
+                        Divider().opacity(0.4)
+                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
+                        Divider().opacity(0.4)
+                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+                        Divider().opacity(0.4)
+                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+                        Divider().opacity(0.4)
+                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+                        Divider().opacity(0.4)
+                        staffRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 24)
+                }
+                .padding(.horizontal, 20)
+            }
         }
     }
     

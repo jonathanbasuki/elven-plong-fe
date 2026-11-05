@@ -19,6 +19,8 @@ public struct TaskLogItem: Identifiable, Codable, Equatable, Hashable, Sendable 
     public var timeString: String
     public var status: TaskLogStatus
     public var zoneID: String?
+    public var instruction: String
+    public var locationName: String
     
     public init(
         id: UUID = UUID(),
@@ -26,7 +28,9 @@ public struct TaskLogItem: Identifiable, Codable, Equatable, Hashable, Sendable 
         dateString: String,
         timeString: String,
         status: TaskLogStatus,
-        zoneID: String? = nil
+        zoneID: String? = nil,
+        instruction: String = "Pastikan passenger tertib tidak ada maling barang-barang semua aman tidak anak anak nangis dan semua enjoy dalam perjalanan",
+        locationName: String = "Pantry"
     ) {
         self.id = id
         self.title = title
@@ -34,6 +38,8 @@ public struct TaskLogItem: Identifiable, Codable, Equatable, Hashable, Sendable 
         self.timeString = timeString
         self.status = status
         self.zoneID = zoneID
+        self.instruction = instruction
+        self.locationName = locationName
     }
     
     public var formattedDateTime: String {

@@ -11,6 +11,7 @@ public final class CrowdMapViewModel {
     public var selectedZoneForDetail: VenueZone?
     public var isDetailModalPresented: Bool = false
     public var showProfileSheet: Bool = false
+    public var delegationStatus: ZoneDelegationStatus = .none
     
     public let coordinator: AssignmentCoordinator
     
@@ -29,17 +30,26 @@ public final class CrowdMapViewModel {
     }
     
     public var activeStaffCount: Int {
-        let count = repository.staffMembers.count
-        return count > 0 ? count : 18
+        18
     }
     
     public var totalCrowd: Int {
+        if delegationStatus == .done {
+            return 45
+        }
         let sum = repository.zones.reduce(0) { $0 + $1.currentCount }
         return sum > 0 ? sum : 80
     }
     
     public var pantryZone: VenueZone? {
-        zones.first { $0.name.localizedCaseInsensitiveContains("Pantry") || $0.id == MockDataConstants.zone1Id } ?? zones.first
+        let base = zones.first { $0.name.localizedCaseInsensitiveContains("Pantry") || $0.id == MockDataConstants.zone1Id } ?? zones.first
+        guard let p = base else { return nil }
+        if delegationStatus == .done {
+            var updated = p
+            updated.currentCount = 15
+            return updated
+        }
+        return p
     }
     
     public var collabZone: VenueZone? {
@@ -61,15 +71,24 @@ public final class CrowdMapViewModel {
     }
     
     public func confirmDelegation(zone: VenueZone, staffNeeded: Int, instruction: String) {
+        delegationStatus = .ongoing
         do {
             try coordinator.startBroadcast(zoneID: zone.id, staffNeeded: staffNeeded)
-            // Add accepted staff members to reflect the confirmed delegation
             for i in 0..<min(staffNeeded, repository.staffMembers.count) {
                 let staff = repository.staffMembers[i]
                 try? coordinator.staffRespond(staffId: staff.id)
             }
         } catch {
-            // Handled or already active
+            // Handled
+        }
+    }
+    
+    public func completeDelegation() {
+        delegationStatus = .done
+        try? coordinator.finishBroadcast()
+        if var pantry = zones.first(where: { $0.name.localizedCaseInsensitiveContains("Pantry") || $0.id == MockDataConstants.zone1Id }) {
+            pantry.currentCount = 15
+            repository.updateZone(pantry)
         }
     }
     

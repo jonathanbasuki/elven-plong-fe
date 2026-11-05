@@ -21,11 +21,13 @@ public struct TaskDetailView: View {
     
     // Sample crowd trend points matching TaskDetailDone.svg
     private let crowdTrendData: [CrowdDataPoint] = [
-        CrowdDataPoint(time: "0", count: 50),
-        CrowdDataPoint(time: "13.15", count: 48),
-        CrowdDataPoint(time: "13.30", count: 49),
-        CrowdDataPoint(time: "13.45", count: 42),
-        CrowdDataPoint(time: "14.00", count: 44)
+        CrowdDataPoint(time: "13.15", count: 24),
+        CrowdDataPoint(time: "13.20", count: 52),
+        CrowdDataPoint(time: "13.25", count: 27),
+        CrowdDataPoint(time: "13.30", count: 55),
+        CrowdDataPoint(time: "13.35", count: 77),
+        CrowdDataPoint(time: "13.40", count: 70),
+        CrowdDataPoint(time: "13.45", count: 26)
     ]
     
     public init(task: TaskLogItem, router: NavigationRouter) {
@@ -96,7 +98,7 @@ public struct TaskDetailView: View {
         )
     }
     
-    // MARK: - Ongoing Layout (sample/Manager/TaskDetail.svg)
+    // MARK: - Ongoing Layout (sample/Manager/TaskDetail Enroute.svg)
     @ViewBuilder
     private var ongoingContent: some View {
         // Status and Crowd Count Row
@@ -135,22 +137,37 @@ public struct TaskDetailView: View {
                     .stroke(Color.primary.opacity(0.08), lineWidth: 1)
             )
         
-        // Active Staff in Area Section
+        // Task Instruction Section
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Task Instruction :")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color(uiColor: .label))
+            
+            Text(task.instruction)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(Color(uiColor: .secondaryLabel))
+                .lineSpacing(3)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        
+        // Assigned Staff Section matching TaskDetail Enroute.svg
         VStack(alignment: .leading, spacing: 14) {
-            Text("Active Staff in Area")
+            Text("Assigned Staff")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color(uiColor: .secondaryLabel))
                 .padding(.top, 4)
             
-            staffDetailRow(name: "Rendi Septrian", role: "Security", statusLine1: "Active Staff", statusLine2: "Pantry")
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
             Divider().opacity(0.4)
-            staffDetailRow(name: "Rendi Septrian", role: "Security", statusLine1: "Active Staff", statusLine2: "Pantry")
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Active Staff")
             Divider().opacity(0.4)
-            staffDetailRow(name: "Rendi Septrian", role: "Security", statusLine1: "Enroute", statusLine2: "Lab 1")
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
             Divider().opacity(0.4)
-            staffDetailRow(name: "Rendi Septrian", role: "Security", statusLine1: "Enroute", statusLine2: "Terrace")
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
             Divider().opacity(0.4)
-            staffDetailRow(name: "Rendi Septrian", role: "Security", statusLine1: "Enroute", statusLine2: "Terrace")
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
+            Divider().opacity(0.4)
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Enroute")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -158,35 +175,25 @@ public struct TaskDetailView: View {
     // MARK: - Done Layout (sample/Manager/TaskDetailDone.svg)
     @ViewBuilder
     private var doneContent: some View {
-        // Total Crowd Trend Section
+        // Total Crowd Trend Section with Bar Chart matching TaskDetailDone.svg
         VStack(alignment: .leading, spacing: 10) {
             Text("Total Crowd Trend")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color(uiColor: .secondaryLabel))
             
-            // Swift Charts Line Chart
             Chart {
                 ForEach(crowdTrendData) { item in
-                    LineMark(
+                    BarMark(
                         x: .value("Time", item.time),
-                        y: .value("Crowd", item.count)
+                        y: .value("Crowd", item.count),
+                        width: .fixed(18)
                     )
-                    .interpolationMethod(.monotone)
                     .foregroundStyle(Color(red: 0.05, green: 0.49, blue: 0.95))
-                    .lineStyle(StrokeStyle(lineWidth: 3))
-                    
-                    PointMark(
-                        x: .value("Time", item.time),
-                        y: .value("Crowd", item.count)
-                    )
-                    .symbol {
-                        Circle()
-                            .fill(Color(uiColor: .systemBackground))
-                            .frame(width: 10, height: 10)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color(red: 0.05, green: 0.49, blue: 0.95), lineWidth: 2.5)
-                            )
+                    .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                    .annotation(position: .top, spacing: 4) {
+                        Text("\(item.count)")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(Color(uiColor: .secondaryLabel))
                     }
                 }
             }
@@ -203,11 +210,11 @@ public struct TaskDetailView: View {
             .chartXAxis {
                 AxisMarks(values: .automatic) { value in
                     AxisValueLabel()
-                        .font(.system(size: 11))
+                        .font(.system(size: 10))
                         .foregroundStyle(Color(uiColor: .secondaryLabel))
                 }
             }
-            .frame(height: 160)
+            .frame(height: 180)
             .padding(16)
             .background(Color(uiColor: .systemBackground))
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -217,56 +224,55 @@ public struct TaskDetailView: View {
             )
         }
         
-        // Active Staff in Area Section
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Active Staff in Area")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color(uiColor: .secondaryLabel))
-                .padding(.top, 4)
-            
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Onsite")
-            Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Onsite")
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        
-        // Assigned Staff Section
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Assigned Staff")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color(uiColor: .secondaryLabel))
-                .padding(.top, 4)
-            
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Lab 1")
-            Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Lab 2")
-            Divider().opacity(0.4)
-            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "Terrace")
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        
         // CCTV Report Section
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("CCTV Report")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Color(uiColor: .secondaryLabel))
                 .padding(.top, 4)
             
-            VStack(spacing: 8) {
-                Image("cctv_snapshot")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
-                
-                Text(task.formattedDateTime)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color(uiColor: .secondaryLabel))
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
+            Text("13:12, 1 October 2026")
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(Color(uiColor: .secondaryLabel))
+            
+            Image("cctv_snapshot")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        
+        // Task Instruction Section
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Task Instruction :")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color(uiColor: .label))
+            
+            Text(task.instruction)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(Color(uiColor: .secondaryLabel))
+                .lineSpacing(3)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        
+        // Assigned Staff Section
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Assigned Staff")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color(uiColor: .secondaryLabel))
+                .padding(.top, 4)
+            
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "")
+            Divider().opacity(0.4)
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "")
+            Divider().opacity(0.4)
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "")
+            Divider().opacity(0.4)
+            staffSimpleRow(name: "Rendi Septrian", role: "Security", statusText: "")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
