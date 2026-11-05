@@ -14,15 +14,19 @@ public final class CrowdMapViewModel {
     public var delegationStatus: ZoneDelegationStatus = .none
     
     public let coordinator: AssignmentCoordinator
+    public let syncService: TaskSyncServiceProtocol
     
     public init(
         repository: CrowdFlowRepositoryProtocol,
         coordinator: AssignmentCoordinator? = nil,
+        syncService: TaskSyncServiceProtocol = MultipeerTaskSyncService.shared,
         router: NavigationRouter
     ) {
         self.repository = repository
         self.coordinator = coordinator ?? AssignmentCoordinator(repository: repository)
+        self.syncService = syncService
         self.router = router
+        setupSyncSubscriptions()
     }
     
     public var zones: [VenueZone] {
@@ -81,6 +85,22 @@ public final class CrowdMapViewModel {
         } catch {
             // Handled
         }
+        
+        // Broadcast task to Staff device over peer-to-peer sync
+        let cleanInstruction = instruction.trimmingCharacters(in: .whitespacesAndNewlines)
+        let dispatchedTask = TaskLogItem(
+            id: UUID(),
+            title: "Overflow in \(zone.name)",
+            dateString: "5 Oct 2026",
+            timeString: "14:05",
+            status: .ongoing,
+            zoneID: zone.id,
+            instruction: cleanInstruction.isEmpty
+                ? "Pastikan passenger tertib tidak ada maling barang-barang semua aman tidak anak anak nangis dan semua enjoy dalam perjalanan"
+                : cleanInstruction,
+            locationName: zone.name
+        )
+        syncService.broadcastTaskDispatched(dispatchedTask)
     }
     
     public func completeDelegation() {
@@ -89,6 +109,13 @@ public final class CrowdMapViewModel {
         if var pantry = zones.first(where: { $0.name.localizedCaseInsensitiveContains("Pantry") || $0.id == MockDataConstants.zone1Id }) {
             pantry.currentCount = 15
             repository.updateZone(pantry)
+        }
+    }
+    
+    private func setupSyncSubscriptions() {
+        syncService.onTaskCompleted = { [weak self] taskId, zoneId, zoneCount, totalCrowd in
+            guard let self = self else { return }
+            self.completeDelegation()
         }
     }
     

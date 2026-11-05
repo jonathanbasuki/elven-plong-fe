@@ -7,6 +7,7 @@ public struct ManagerHomeView: View {
     public let repository: MockCrowdFlowRepository
     public let coordinator: AssignmentCoordinator
     public let router: NavigationRouter
+    public let syncService: TaskSyncServiceProtocol
     
     @State private var selectedTab: MainTab = .overview
     @State private var crowdMapViewModel: CrowdMapViewModel
@@ -15,15 +16,18 @@ public struct ManagerHomeView: View {
     public init(
         repository: MockCrowdFlowRepository,
         coordinator: AssignmentCoordinator,
+        syncService: TaskSyncServiceProtocol = MultipeerTaskSyncService.shared,
         router: NavigationRouter
     ) {
         self.repository = repository
         self.coordinator = coordinator
+        self.syncService = syncService
         self.router = router
         
         _crowdMapViewModel = State(initialValue: CrowdMapViewModel(
             repository: repository,
             coordinator: coordinator,
+            syncService: syncService,
             router: router
         ))
         _taskLogViewModel = State(initialValue: TaskLogViewModel(

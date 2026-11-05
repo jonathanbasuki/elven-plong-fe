@@ -6,9 +6,12 @@ public struct StaffHomeView: View {
     public let repository: MockCrowdFlowRepository
     public let coordinator: AssignmentCoordinator
     public let router: NavigationRouter
+    public let syncService: TaskSyncServiceProtocol
     
     @State private var selectedSegment: TaskLogSegment = .ongoing
     @State private var completedTaskIDs: Set<UUID> = []
+    @State private var dynamicTasks: [TaskLogItem] = []
+    @State private var incomingAlertTask: TaskLogItem? = nil
     
     // Seed staff tasks matching sample/staff/
     private let initialOngoingTask = TaskLogItem(
@@ -36,10 +39,12 @@ public struct StaffHomeView: View {
     public init(
         repository: MockCrowdFlowRepository,
         coordinator: AssignmentCoordinator,
+        syncService: TaskSyncServiceProtocol = MultipeerTaskSyncService.shared,
         router: NavigationRouter
     ) {
         self.repository = repository
         self.coordinator = coordinator
+        self.syncService = syncService
         self.router = router
     }
     
@@ -79,6 +84,32 @@ public struct StaffHomeView: View {
         }
         .background(Color(uiColor: .systemBackground))
         .navigationBarHidden(true)
+        .fullScreenCover(item: $incomingAlertTask) { alertTask in
+            StaffTaskAlertView(
+                task: alertTask,
+                onAccept: { acceptedTask in
+                    if !dynamicTasks.contains(where: { $0.id == acceptedTask.id }) {
+                        dynamicTasks.insert(acceptedTask, at: 0)
+                    }
+                    incomingAlertTask = nil
+                    router.navigate(to: .staffTaskDetail(item: acceptedTask))
+                },
+                onDismiss: {
+                    incomingAlertTask = nil
+                }
+            )
+        }
+        .onAppear {
+            setupSync()
+        }
+    }
+    
+    private func setupSync() {
+        syncService.onTaskDispatched = { newTask in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                self.incomingAlertTask = newTask
+            }
+        }
     }
     
     // MARK: - Current Tasks based on segment and completion
@@ -89,20 +120,28 @@ public struct StaffHomeView: View {
         
         switch selectedSegment {
         case .ongoing:
-            if isPantryDone {
-                return []
-            } else {
-                return [initialOngoingTask]
+            var items: [TaskLogItem] = []
+            for dyn in dynamicTasks where !completedTaskIDs.contains(dyn.id) && dyn.status == .ongoing {
+                items.append(dyn)
             }
+            if !isPantryDone && !items.contains(where: { $0.id == initialOngoingTask.id }) {
+                items.append(initialOngoingTask)
+            }
+            return items
             
         case .history:
+            var items: [TaskLogItem] = []
+            for var dyn in dynamicTasks where completedTaskIDs.contains(dyn.id) || dyn.status == .done {
+                dyn.status = .done
+                items.append(dyn)
+            }
             if isPantryDone {
                 var donePantry = initialOngoingTask
                 donePantry.status = .done
-                return [donePantry, initialHistoryTask]
-            } else {
-                return [initialHistoryTask]
+                items.append(donePantry)
             }
+            items.append(initialHistoryTask)
+            return items
         }
     }
     

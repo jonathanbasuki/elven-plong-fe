@@ -459,6 +459,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Plong;
+				"INFOPLIST_KEY_NSBonjourServices[sdk=*]" = "_plong-sync._tcp _plong-sync._udp";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Plong uses the local network to synchronize tasks between Manager and Staff devices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -499,6 +501,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Plong;
+				"INFOPLIST_KEY_NSBonjourServices[sdk=*]" = "_plong-sync._tcp _plong-sync._udp";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Plong uses the local network to synchronize tasks between Manager and Staff devices.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

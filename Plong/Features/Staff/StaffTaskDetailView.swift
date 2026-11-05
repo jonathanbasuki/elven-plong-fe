@@ -7,6 +7,7 @@ public struct StaffTaskDetailView: View {
     public let router: NavigationRouter
     public let coordinator: AssignmentCoordinator
     public let repository: MockCrowdFlowRepository
+    public let syncService: TaskSyncServiceProtocol
     
     @State private var isCompleted: Bool = false
     
@@ -14,12 +15,14 @@ public struct StaffTaskDetailView: View {
         task: TaskLogItem,
         router: NavigationRouter,
         coordinator: AssignmentCoordinator,
-        repository: MockCrowdFlowRepository
+        repository: MockCrowdFlowRepository,
+        syncService: TaskSyncServiceProtocol = MultipeerTaskSyncService.shared
     ) {
         self.task = task
         self.router = router
         self.coordinator = coordinator
         self.repository = repository
+        self.syncService = syncService
         _isCompleted = State(initialValue: task.status == .done)
     }
     
@@ -185,14 +188,23 @@ public struct StaffTaskDetailView: View {
             isCompleted = true
         }
         
+        let zoneId = task.zoneID ?? MockDataConstants.zone1Id
         // Update repository: Pantry crowd drops to normal (15)
-        if var pantry = repository.getZone(by: MockDataConstants.zone1Id) {
-            pantry.currentCount = 15
-            repository.updateZone(pantry)
+        if var zone = repository.getZone(by: zoneId) {
+            zone.currentCount = 15
+            repository.updateZone(zone)
         }
         
         // Finish coordinator broadcast
         try? coordinator.finishBroadcast()
+        
+        // Broadcast task completion to Manager device via P2P sync
+        syncService.broadcastTaskCompleted(
+            taskId: task.id,
+            zoneId: zoneId,
+            zoneCount: 15,
+            totalCrowd: 45
+        )
     }
 }
 

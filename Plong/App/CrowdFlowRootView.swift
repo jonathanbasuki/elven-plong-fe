@@ -5,22 +5,26 @@ public struct CrowdFlowRootView: View {
     @State private var router: NavigationRouter
     @State private var repository: MockCrowdFlowRepository
     @State private var coordinator: AssignmentCoordinator
+    @State private var syncService: TaskSyncServiceProtocol
     
     public init() {
-        let defaultRepo = MockCrowdFlowRepository()
-        let defaultRouter = NavigationRouter()
-        _repository = State(initialValue: defaultRepo)
-        _router = State(initialValue: defaultRouter)
-        _coordinator = State(initialValue: AssignmentCoordinator(repository: defaultRepo))
+        let repo = MockCrowdFlowRepository()
+        let router = NavigationRouter()
+        _repository = State(initialValue: repo)
+        _router = State(initialValue: router)
+        _coordinator = State(initialValue: AssignmentCoordinator(repository: repo))
+        _syncService = State(initialValue: MultipeerTaskSyncService.shared)
     }
     
     public init(
         repository: MockCrowdFlowRepository,
-        router: NavigationRouter
+        router: NavigationRouter,
+        syncService: TaskSyncServiceProtocol = MultipeerTaskSyncService.shared
     ) {
         _repository = State(initialValue: repository)
         _router = State(initialValue: router)
         _coordinator = State(initialValue: AssignmentCoordinator(repository: repository))
+        _syncService = State(initialValue: syncService)
     }
     
     public var body: some View {
@@ -34,12 +38,14 @@ public struct CrowdFlowRootView: View {
                             ManagerHomeView(
                                 repository: repository,
                                 coordinator: coordinator,
+                                syncService: syncService,
                                 router: router
                             )
                         } else {
                             StaffHomeView(
                                 repository: repository,
                                 coordinator: coordinator,
+                                syncService: syncService,
                                 router: router
                             )
                         }
@@ -51,6 +57,18 @@ public struct CrowdFlowRootView: View {
             }
         }
         .preferredColorScheme(.light)
+        .onAppear {
+            if router.isAuthenticated {
+                syncService.start(as: router.currentUserRole)
+            }
+        }
+        .onChange(of: router.isAuthenticated) { _, isAuth in
+            if isAuth {
+                syncService.start(as: router.currentUserRole)
+            } else {
+                syncService.stop()
+            }
+        }
     }
     
     @ViewBuilder
@@ -61,12 +79,14 @@ public struct CrowdFlowRootView: View {
                 ManagerHomeView(
                     repository: repository,
                     coordinator: coordinator,
+                    syncService: syncService,
                     router: router
                 )
             } else {
                 StaffHomeView(
                     repository: repository,
                     coordinator: coordinator,
+                    syncService: syncService,
                     router: router
                 )
             }
@@ -82,7 +102,8 @@ public struct CrowdFlowRootView: View {
                 task: item,
                 router: router,
                 coordinator: coordinator,
-                repository: repository
+                repository: repository,
+                syncService: syncService
             )
         }
     }
