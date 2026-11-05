@@ -27,7 +27,15 @@ public struct TaskLogView: View {
                     .padding(.horizontal, 20)
                     .padding(.top, showChrome ? 0 : 8)
                     .padding(.bottom, 16)
-                
+
+                #if DEBUG
+                if viewModel.selectedSegment == .ongoing {
+                    debugMockTaskButton
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 12)
+                }
+                #endif
+
                 // Tasks List
                 ScrollView(showsIndicators: false) {
                     LazyVStack(spacing: 14) {
@@ -53,6 +61,27 @@ public struct TaskLogView: View {
         .navigationBarHidden(true)
     }
     
+    #if DEBUG
+    // MARK: - Debug: Mock Task Generator
+    private var debugMockTaskButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            withAnimation(.easeInOut(duration: 0.2)) {
+                viewModel.addMockOngoingTask()
+            }
+        } label: {
+            Label("Add Mock Task (Debug)", systemImage: "ladybug")
+                .font(.system(size: 14, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+        }
+        .buttonStyle(.bordered)
+        .tint(.orange)
+        .clipShape(Capsule())
+        .accessibilityLabel("Add mock ongoing task")
+    }
+    #endif
+
     // MARK: - Segmented Capsule [ Ongoing | History ]
     private var segmentedControl: some View {
         HStack(spacing: 0) {

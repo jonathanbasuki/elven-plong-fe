@@ -122,6 +122,36 @@ public final class TaskLogViewModel {
         }
     }
     
+    #if DEBUG
+    /// Debug-only: inserts a randomized mock task at the top of the Ongoing list.
+    public func addMockOngoingTask() {
+        let locations: [(name: String, zoneID: String)] = [
+            ("Pantry", MockDataConstants.zone1Id),
+            ("Lab 2", MockDataConstants.zone2Id),
+            ("Lab 1", MockDataConstants.zone3Id)
+        ]
+        let location = locations.randomElement()!
+        let now = Date()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "d MMMM yyyy"
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+
+        ongoingLogs.insert(
+            TaskLogItem(
+                title: "Overflow in \(location.name)",
+                dateString: dateFormatter.string(from: now),
+                timeString: timeFormatter.string(from: now),
+                status: .ongoing,
+                zoneID: location.zoneID,
+                instruction: "[Mock] Pantau kepadatan di \(location.name) dan arahkan pengunjung agar tertib.",
+                locationName: location.name
+            ),
+            at: 0
+        )
+    }
+    #endif
+
     public func selectTask(_ task: TaskLogItem) {
         router.navigate(to: .taskDetail(item: task))
     }

@@ -184,45 +184,9 @@ public struct StaffHomeView: View {
     
     // MARK: - Staff Task Card matching sample/staff/tasklog1.svg & tasklog2.svg
     private func staffTaskCard(_ task: TaskLogItem) -> some View {
-        Button {
-            let impact = UIImpactFeedbackGenerator(style: .light)
-            impact.impactOccurred()
+        TaskCard(task: task, ongoingStyle: .accepted) {
             router.navigate(to: .staffTaskDetail(item: task))
-        } label: {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(task.title)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Color(uiColor: .label))
-                        .multilineTextAlignment(.leading)
-                    
-                    Text(task.formattedDateTime)
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundStyle(Color(uiColor: .secondaryLabel))
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 8) {
-                    StatusPillBadge(style: task.status == .ongoing ? .accepted : .done)
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color(uiColor: .tertiaryLabel))
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(uiColor: .systemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.primary.opacity(0.12), lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(task.title), \(task.formattedDateTime), Status: \(task.status == .ongoing ? "Accepted" : "Done")")
     }
     
     private var emptyStateView: some View {
