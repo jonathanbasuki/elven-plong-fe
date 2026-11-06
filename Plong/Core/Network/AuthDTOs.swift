@@ -46,9 +46,24 @@ public struct UserResponse: Codable, Sendable, Identifiable {
         self.isActive = isActive
     }
     
-    /// Maps backend string role ("manager" | "staff") to frontend UserRole enum
+    /// Maps backend string role (e.g. "ops_manager", "manager", "staff", "ops_staff") to frontend UserRole enum
     public var userRole: UserRole {
-        role.lowercased() == "staff" ? .staff : .manager
+        let normalized = role.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized == "ops_manager" || normalized == "manager" || normalized.contains("manager") {
+            return .manager
+        } else if normalized == "staff" || normalized == "ops_staff" || normalized.contains("staff") || normalized.contains("security") {
+            return .staff
+        }
+        
+        // Fallback by email heuristic if role string is custom or unmapped
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalizedEmail.contains("manager") {
+            return .manager
+        } else if normalizedEmail.contains("staff") {
+            return .staff
+        }
+        
+        return .staff
     }
 }
 

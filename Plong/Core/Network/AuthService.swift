@@ -124,7 +124,8 @@ public final class MockAuthService: AuthServiceProtocol {
         if !shouldSucceed {
             throw APIError.unauthenticated("Invalid email or password")
         }
-        let role = request.email.lowercased().contains("staff") ? "staff" : "manager"
+        let isStaff = request.email.lowercased().contains("staff")
+        let backendRole = isStaff ? "ops_staff" : "ops_manager"
         return TokenResponse(
             accessToken: "mock-jwt-access-token",
             refreshToken: "mock-jwt-refresh-token",
@@ -132,8 +133,8 @@ public final class MockAuthService: AuthServiceProtocol {
             user: UserResponse(
                 id: UUID(),
                 email: request.email,
-                fullName: role == "staff" ? "Staff Officer" : "Venue Manager",
-                role: role,
+                fullName: isStaff ? "Staff Officer" : "Venue Manager",
+                role: backendRole,
                 isActive: true
             )
         )

@@ -64,7 +64,7 @@ final class AuthServiceTests: XCTestCase {
             "id": "e5b8e9b6-8f2c-4e89-b88d-7a35987116a4",
             "email": "rendi@venue.com",
             "fullName": "Rendi Septrian",
-            "role": "manager",
+            "role": "ops_manager",
             "isActive": true
           }
         }
@@ -75,11 +75,27 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertEqual(decoded.tokenType, "bearer")
         XCTAssertEqual(decoded.expiresIn, 3600)
         XCTAssertEqual(decoded.user.fullName, "Rendi Septrian")
+        XCTAssertEqual(decoded.user.role, "ops_manager")
         XCTAssertEqual(decoded.user.userRole, .manager)
         XCTAssertTrue(decoded.user.isActive)
     }
     
-    // 3. Test APIErrorResponse decoding from backend 401 unauthenticated
+    // 3. Test userRole mapping for ops_manager, ops_staff, and fallback heuristics
+    func test_userResponse_roleMapping_opsManagerAndStaff() {
+        let managerUser = UserResponse(id: UUID(), email: "mgr@venue.com", fullName: "Mgr", role: "ops_manager", isActive: true)
+        XCTAssertEqual(managerUser.userRole, .manager)
+        
+        let staffUser = UserResponse(id: UUID(), email: "stf@venue.com", fullName: "Stf", role: "ops_staff", isActive: true)
+        XCTAssertEqual(staffUser.userRole, .staff)
+        
+        let plainStaff = UserResponse(id: UUID(), email: "user@venue.com", fullName: "Stf2", role: "staff", isActive: true)
+        XCTAssertEqual(plainStaff.userRole, .staff)
+        
+        let plainManager = UserResponse(id: UUID(), email: "user@venue.com", fullName: "Mgr2", role: "manager", isActive: true)
+        XCTAssertEqual(plainManager.userRole, .manager)
+    }
+    
+    // 4. Test APIErrorResponse decoding from backend 401 unauthenticated
     func test_apiErrorResponse_decoding() throws {
         let errorJson = """
         {"error":{"code":"unauthenticated","message":"Invalid email or password"}}
