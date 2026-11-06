@@ -12,9 +12,14 @@ public final class LoginViewModel {
     public var generalError: String? = nil
     
     private let router: NavigationRouter
+    public let authService: AuthServiceProtocol
     
-    public init(router: NavigationRouter) {
+    public init(
+        router: NavigationRouter,
+        authService: AuthServiceProtocol = AuthService.shared
+    ) {
         self.router = router
+        self.authService = authService
     }
     
     public func validate() -> Bool {
@@ -47,21 +52,24 @@ public final class LoginViewModel {
         guard validate() else { return }
         
         isLoading = true
+        generalError = nil
         
-        // Determine user experience directly from account email
-        let lowerEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let role: UserRole
-        if lowerEmail.contains("staff") {
-            role = .staff
-        } else {
-            role = .manager
-        }
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let request = LoginRequest(email: trimmedEmail, password: password)
         
-        // Simulate brief loading state asynchronously
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s brief simulation
-            self.isLoading = false
-            self.router.login(as: role)
+            do {
+                let tokenResponse = try await authService.login(request: request)
+                self.isLoading = false
+                let role = tokenResponse.user.userRole
+                self.router.login(as: role)
+            } catch let apiError as APIError {
+                self.isLoading = false
+                self.generalError = apiError.localizedDescription
+            } catch {
+                self.isLoading = false
+                self.generalError = error.localizedDescription
+            }
         }
     }
 }

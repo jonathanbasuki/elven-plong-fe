@@ -9,7 +9,11 @@ public struct CrowdFlowRootView: View {
     
     public init() {
         let repo = MockCrowdFlowRepository()
-        let router = NavigationRouter()
+        let session = AuthSessionManager.shared
+        let router = NavigationRouter(
+            isAuthenticated: session.isAuthenticated,
+            currentUserRole: session.currentUser?.userRole ?? .manager
+        )
         _repository = State(initialValue: repo)
         _router = State(initialValue: router)
         _coordinator = State(initialValue: AssignmentCoordinator(repository: repo))

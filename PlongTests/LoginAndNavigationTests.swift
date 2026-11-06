@@ -36,7 +36,7 @@ final class LoginAndNavigationTests: XCTestCase {
     
     func test_loginRoleSelection_managerAndStaff() async {
         let router = NavigationRouter()
-        let vm = LoginViewModel(router: router)
+        let vm = LoginViewModel(router: router, authService: MockAuthService())
         
         // Sign in with Staff email
         vm.email = "staff@venue.com"

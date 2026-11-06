@@ -27,6 +27,9 @@ public final class NavigationRouter {
     public func logout() {
         self.isAuthenticated = false
         self.path = NavigationPath()
+        Task {
+            try? await AuthService.shared.logout()
+        }
     }
     
     public func navigate(to route: AppRoute) {
